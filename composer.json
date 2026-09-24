@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "openbooks-sg/openbooks-sg",
+    "name": "consultanything-tech/openbooks-sg",
     "type": "project",
     "description": "OpenBooks SG - accounting, invoicing and billing application.",
     "keywords": ["openbooks", "accounting", "invoicing", "laravel"],

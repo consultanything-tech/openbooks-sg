@@ -15,7 +15,7 @@ Thank you for your interest in contributing to OpenBooks SG! This guide will hel
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/openbooks-sg/openbooks-sg.git
+git clone https://github.com/consultanything-tech/openbooks-sg.git
 cd openbooks-sg
 
 # Install dependencies

@@ -5,7 +5,7 @@
 ![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
-[![CI](https://github.com/openbooks-sg/openbooks-sg/actions/workflows/ci.yml/badge.svg)](https://github.com/openbooks-sg/openbooks-sg/actions/workflows/ci.yml)
+[![CI](https://github.com/consultanything-tech/openbooks-sg/actions/workflows/ci.yml/badge.svg)](https://github.com/consultanything-tech/openbooks-sg/actions/workflows/ci.yml)
 
 ---
 
@@ -95,7 +95,7 @@ This project is open source under the MIT license. Contributions, issues, and fe
 
 ```bash
 # Clone the repository
-git clone https://github.com/openbooks-sg/openbooks-sg.git
+git clone https://github.com/consultanything-tech/openbooks-sg.git
 cd openbooks-sg
 
 # Install PHP dependencies
@@ -129,7 +129,7 @@ Visit `http://localhost:8000/install` to run the web installer and create your a
 
 ```bash
 # Clone and start all services
-git clone https://github.com/openbooks-sg/openbooks-sg.git
+git clone https://github.com/consultanything-tech/openbooks-sg.git
 cd openbooks-sg
 docker compose up -d
 ```
