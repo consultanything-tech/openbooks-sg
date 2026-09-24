@@ -49,13 +49,13 @@ class CreditNoteController extends Controller
 
         // Auto generate next credit note number
         $lastId = CreditNote::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'CN-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'CN-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         // Pre-fill from invoice if provided
         $invoice = null;
         $invoiceItems = [];
         if ($request->filled('invoice_id')) {
-            $invoice = Invoice::with('items', 'customer')->find($request->invoice_id);
+            $invoice = Invoice::with('items', 'customer')->whereKey($request->invoice_id)->first();
             if ($invoice) {
                 $invoiceItems = $invoice->items;
             }

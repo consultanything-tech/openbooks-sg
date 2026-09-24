@@ -172,7 +172,7 @@ class ChartOfAccountsController extends Controller
                 $nextSeq = 1;
             }
 
-            $entryNumber = 'JE-'.$year.'-'.str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            $entryNumber = 'JE-'.$year.'-'.str_pad((string) $nextSeq, 4, '0', STR_PAD_LEFT);
 
             $entry = JournalEntry::create([
                 'entry_number' => $entryNumber,

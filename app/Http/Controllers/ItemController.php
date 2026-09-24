@@ -53,8 +53,8 @@ class ItemController extends Controller
                 $it->name,
                 $it->sku,
                 $it->category->name ?? 'General',
-                number_format($it->sale_price, 2),
-                number_format($it->purchase_price, 2),
+                number_format((float) $it->sale_price, 2),
+                number_format((float) $it->purchase_price, 2),
                 $it->tax ? $it->tax->name.' ('.$it->tax->rate.'%)' : 'None',
                 $it->unit,
             ];
@@ -116,12 +116,14 @@ class ItemController extends Controller
             }
 
             try {
-                $data = array_combine($header, array_pad($row, count($header), ''));
-                if ($data === false) {
+                $row = array_pad($row, count($header), '');
+                if (count($row) !== count($header)) {
                     $skipped++;
 
                     continue;
                 }
+
+                $data = array_combine($header, $row);
 
                 $name = trim($data['name'] ?? '');
                 $sku = trim($data['sku'] ?? '');
@@ -178,14 +180,6 @@ class ItemController extends Controller
         ]);
     }
 
-    public function create()
-    {
-        $categories = Category::all();
-        $taxes = Tax::all();
-
-        return view('items.create', compact('categories', 'taxes'));
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -206,14 +200,6 @@ class ItemController extends Controller
         $this->logActivity('created', "Created item {$item->name}", 'Item', $item->id);
 
         return redirect()->route('items.index')->with('success', 'Product / Service created successfully.');
-    }
-
-    public function edit(Item $item)
-    {
-        $categories = Category::all();
-        $taxes = Tax::all();
-
-        return view('items.edit', compact('item', 'categories', 'taxes'));
     }
 
     public function update(Request $request, $id)

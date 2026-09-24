@@ -209,7 +209,7 @@ class TimeTrackingController extends Controller
             }
 
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $invoiceNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $invoiceNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
             $invoice = Invoice::create([
                 'invoice_number' => $invoiceNumber,

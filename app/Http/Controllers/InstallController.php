@@ -293,7 +293,7 @@ class InstallController extends Controller
             DB::reconnect('mysql');
 
             // 3. Ensure Application Key is set
-            if (empty(env('APP_KEY')) || env('APP_KEY') === 'base64:') {
+            if (empty(config('app.key')) || config('app.key') === 'base64:') {
                 Artisan::call('key:generate', ['--force' => true]);
             }
 

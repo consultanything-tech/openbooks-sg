@@ -44,7 +44,7 @@ class ExpenseClaimController extends Controller
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
         $categories = Category::where('type', 'expense')->get();
         $lastId = ExpenseClaim::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'EXP-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'EXP-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         return view('expense-claims.create', compact('company', 'categories', 'nextNumber'));
     }
@@ -145,7 +145,7 @@ class ExpenseClaimController extends Controller
 
             $bankAccount = BankAccount::find($validated['bank_account_id']);
             if ($bankAccount) {
-                $bankAccount->decrement('current_balance', $claim->total_amount);
+                $bankAccount->decrement('current_balance', (float) $claim->total_amount);
             }
 
             Transaction::create([

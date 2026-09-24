@@ -29,11 +29,13 @@ class Item extends Model
         'track_inventory' => 'boolean',
     ];
 
+    /** @return BelongsTo<Category, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    /** @return BelongsTo<Tax, $this> */
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);

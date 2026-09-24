@@ -28,7 +28,7 @@ class AnswerService
 
     public function __construct()
     {
-        $this->symbol = Company::first()?->currency_symbol ?? 'S$';
+        $this->symbol = Company::first()->currency_symbol ?? 'S$';
     }
 
     /**
@@ -643,7 +643,7 @@ class AnswerService
 
         $byCat = $txns->groupBy(fn ($t) => $t->category_id ?? 0)
             ->map(fn ($g) => [
-                'name' => $g->first()->category?->name ?? 'Uncategorised',
+                'name' => $g->first()->category->name ?? 'Uncategorised',
                 'total' => (float) $g->sum('amount'),
             ])
             ->sortByDesc('total')->values();

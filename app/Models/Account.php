@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property float $total_debit Aggregated debit alias on ledger queries
+ * @property float $total_credit Aggregated credit alias on ledger queries
+ */
 class Account extends Model
 {
     protected $fillable = [

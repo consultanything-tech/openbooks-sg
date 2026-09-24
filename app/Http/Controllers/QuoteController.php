@@ -65,7 +65,7 @@ class QuoteController extends Controller
         $currencies = CurrencyRate::where('is_active', true)->orderBy('currency_code')->get();
 
         $lastId = Quote::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'QUO-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'QUO-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         return view('quotes.create', compact('customers', 'items', 'taxes', 'company', 'nextNumber', 'currencies'));
     }
@@ -323,7 +323,7 @@ class QuoteController extends Controller
 
     public function convertToInvoice($id)
     {
-        $quote = Quote::with('items')->findOrFail($id);
+        $quote = Quote::with('items')->whereKey($id)->firstOrFail();
 
         if ($quote->status === 'converted') {
             return back()->with('error', 'This quotation has already been converted.');
@@ -331,7 +331,7 @@ class QuoteController extends Controller
 
         $invoice = DB::transaction(function () use ($quote) {
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $nextNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
             $invoice = Invoice::create([
                 'invoice_number' => $nextNumber,
@@ -407,9 +407,9 @@ class QuoteController extends Controller
                 $q->customer->name ?? 'N/A',
                 $q->quote_date,
                 $q->expiry_date,
-                number_format($q->subtotal, 2),
-                number_format($q->tax_total, 2),
-                number_format($q->total, 2),
+                number_format((float) $q->subtotal, 2),
+                number_format((float) $q->tax_total, 2),
+                number_format((float) $q->total, 2),
                 $q->status,
             ];
         }

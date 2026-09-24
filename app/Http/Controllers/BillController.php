@@ -63,7 +63,7 @@ class BillController extends Controller
         $taxes = Tax::where('is_active', true)->get();
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
         $currencies = CurrencyRate::where('is_active', true)->orderBy('currency_code')->get();
-        $nextBillNumber = 'BILL-'.date('Y').'-'.str_pad((Bill::withTrashed()->max('id') ?? 0) + 1, 4, '0', STR_PAD_LEFT);
+        $nextBillNumber = 'BILL-'.date('Y').'-'.str_pad((string) ((Bill::withTrashed()->max('id') ?? 0) + 1), 4, '0', STR_PAD_LEFT);
 
         return view('bills.create', compact('vendors', 'items', 'taxes', 'company', 'currencies', 'nextBillNumber'));
     }
@@ -246,7 +246,7 @@ class BillController extends Controller
             if ($wasActive) {
                 $oldVendor = Vendor::find($bill->vendor_id);
                 if ($oldVendor) {
-                    $oldVendor->decrement('balance', $bill->total);
+                    $oldVendor->decrement('balance', (float) $bill->total);
                 }
             }
 
@@ -331,7 +331,7 @@ class BillController extends Controller
             // Reverse vendor payable balance
             $vendor = Vendor::find($bill->vendor_id);
             if ($vendor) {
-                $vendor->decrement('balance', $bill->due_amount);
+                $vendor->decrement('balance', (float) $bill->due_amount);
             }
 
             // Line items are kept so "Undo" can put the bill back intact.
@@ -366,7 +366,7 @@ class BillController extends Controller
         DB::transaction(function () use ($bill) {
             $vendor = Vendor::withTrashed()->find($bill->vendor_id);
             if ($vendor) {
-                $vendor->increment('balance', $bill->due_amount);
+                $vendor->increment('balance', (float) $bill->due_amount);
             }
 
             $bill->restore();
@@ -389,12 +389,12 @@ class BillController extends Controller
                 $b->vendor->name ?? 'N/A',
                 $b->bill_date,
                 $b->due_date,
-                number_format($b->subtotal, 2),
-                number_format($b->tax_total, 2),
-                number_format($b->discount_total, 2),
-                number_format($b->total, 2),
-                number_format($b->paid_amount, 2),
-                number_format($b->due_amount, 2),
+                number_format((float) $b->subtotal, 2),
+                number_format((float) $b->tax_total, 2),
+                number_format((float) $b->discount_total, 2),
+                number_format((float) $b->total, 2),
+                number_format((float) $b->paid_amount, 2),
+                number_format((float) $b->due_amount, 2),
                 $b->status,
             ];
         }

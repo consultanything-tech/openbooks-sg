@@ -32,11 +32,11 @@ class ProcessOcrJob implements ShouldQueue
         ]);
 
         try {
-            $result = $ocrService->extractFromReceipt($this->filePath);
+            $result = $ocrService->extractFromImage($this->filePath);
 
             Log::info('OCR processing complete', [
                 'file' => $this->filePath,
-                'result_keys' => array_keys($result ?? []),
+                'result_keys' => array_keys($result),
             ]);
         } catch (\Exception $e) {
             Log::error('OCR processing failed', [

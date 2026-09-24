@@ -184,7 +184,7 @@ class CustomReportController extends Controller
             } elseif ($dim === 'customer' && ! empty($sourceConfig['party_fk'])) {
                 $partyTable = $sourceConfig['party_table'];
                 $partyFk = $sourceConfig['party_fk'];
-                if ($partyTable && $partyFk) {
+                if ($partyTable) {
                     $query->leftJoin($partyTable, "{$sourceConfig['table']}.{$partyFk}", '=', "{$partyTable}.id");
                     $nameExpr = "{$partyTable}.name";
                     if (! empty($sourceConfig['party2_table']) && ! empty($sourceConfig['party2_fk'])) {

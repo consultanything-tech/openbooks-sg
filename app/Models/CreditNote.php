@@ -24,16 +24,19 @@ class CreditNote extends Model
         'total' => 'decimal:2',
     ];
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Invoice, $this> */
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
     }
 
+    /** @return HasMany<CreditNoteItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(CreditNoteItem::class);

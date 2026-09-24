@@ -396,7 +396,7 @@ EOT;
 
                     // Next invoice number
                     $lastId = Invoice::withTrashed()->max('id') ?? 0;
-                    $invoiceNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                    $invoiceNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
                     $invoice = Invoice::create([
                         'invoice_number' => $invoiceNumber,
@@ -483,7 +483,7 @@ EOT;
 
                     // Next quote number (same convention as QuoteController)
                     $lastQuoteId = Quote::withTrashed()->max('id') ?? 0;
-                    $quoteNumber = 'QUO-'.date('Y').'-'.str_pad($lastQuoteId + 1, 4, '0', STR_PAD_LEFT);
+                    $quoteNumber = 'QUO-'.date('Y').'-'.str_pad((string) ($lastQuoteId + 1), 4, '0', STR_PAD_LEFT);
 
                     // Quotes are non-binding: status sent, no receivable posted.
                     $quote = Quote::create([
@@ -565,7 +565,7 @@ EOT;
                     $grandTotal = $subtotal + $lineTax;
 
                     $lastId = Bill::withTrashed()->max('id') ?? 0;
-                    $billNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                    $billNumber = 'BILL-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
                     $bill = Bill::create([
                         'vendor_id' => $vendor->id,
@@ -680,10 +680,10 @@ EOT;
                         $cust = Customer::where('name', 'like', '%'.$partyName.'%')->first();
                         $vend = Vendor::where('name', 'like', '%'.$partyName.'%')->first();
                         if ($cust) {
-                            $output[] = "**Customer**: [{$cust->name}](".route('customers.show', $cust->id).") — Pending Receivable: **{$currencySymbol}".number_format($cust->balance, 2).'**';
+                            $output[] = "**Customer**: [{$cust->name}](".route('customers.show', $cust->id).") — Pending Receivable: **{$currencySymbol}".number_format((float) $cust->balance, 2).'**';
                         }
                         if ($vend) {
-                            $output[] = "**Vendor**: [{$vend->name}](".route('vendors.show', $vend->id).") — Outstanding Payable: **{$currencySymbol}".number_format($vend->balance, 2).'**';
+                            $output[] = "**Vendor**: [{$vend->name}](".route('vendors.show', $vend->id).") — Outstanding Payable: **{$currencySymbol}".number_format((float) $vend->balance, 2).'**';
                         }
                         if (! $cust && ! $vend) {
                             $output[] = "No party found matching \"{$partyName}\".";
@@ -696,7 +696,7 @@ EOT;
                         if ($dueCustomers->count() > 0) {
                             $output[] = "\n*Top Pending Customers*:";
                             foreach ($dueCustomers as $dc) {
-                                $output[] = "• [{$dc->name}](".route('customers.show', $dc->id)."): {$currencySymbol}".number_format($dc->balance, 2);
+                                $output[] = "• [{$dc->name}](".route('customers.show', $dc->id)."): {$currencySymbol}".number_format((float) $dc->balance, 2);
                             }
                         }
 
@@ -704,7 +704,7 @@ EOT;
                         if ($dueVendors->count() > 0) {
                             $output[] = "\n*Top Pending Vendors*:";
                             foreach ($dueVendors as $dv) {
-                                $output[] = "• [{$dv->name}](".route('vendors.show', $dv->id)."): {$currencySymbol}".number_format($dv->balance, 2);
+                                $output[] = "• [{$dv->name}](".route('vendors.show', $dv->id)."): {$currencySymbol}".number_format((float) $dv->balance, 2);
                             }
                         }
                     }
@@ -764,7 +764,7 @@ EOT;
                     $totalCash = $accounts->sum('current_balance');
                     $accList = [];
                     foreach ($accounts as $a) {
-                        $accList[] = "• **{$a->name}** (A/C: ".($a->account_number ?: 'Cash')."): **{$currencySymbol}".number_format($a->current_balance, 2).'**';
+                        $accList[] = "• **{$a->name}** (A/C: ".($a->account_number ?: 'Cash')."): **{$currencySymbol}".number_format((float) $a->current_balance, 2).'**';
                     }
                     $res['reply_append'] = "**Bank & Cash Balances** (Total: **{$currencySymbol}".number_format($totalCash, 2)."**):\n".implode("\n", $accList)."\n[Open Banking Ledger](".route('banking.index').') | [New Transfer]('.route('banking.transfer').')';
                     break;

@@ -173,7 +173,7 @@ class TwoFactorController extends Controller
 
         for ($i = -$window; $i <= $window; $i++) {
             $timeSlice = $time + $i;
-            $expected = $this->generateTotp($secret, $timeSlice);
+            $expected = $this->generateTotp($secret, (int) $timeSlice);
             if (hash_equals($expected, $code)) {
                 return true;
             }

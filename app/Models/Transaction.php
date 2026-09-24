@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $month Month bucket alias on aggregate queries
+ * @property float $total Aggregated amount alias on aggregate queries
+ * @property float $total_amount Aggregated amount alias on aggregate queries
+ */
 class Transaction extends Model
 {
     use HasFactory;
@@ -34,26 +39,31 @@ class Transaction extends Model
         return $this->belongsTo(BankAccount::class, 'to_bank_account_id');
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Vendor, $this> */
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
     }
 
+    /** @return BelongsTo<Invoice, $this> */
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
     }
 
+    /** @return BelongsTo<Bill, $this> */
     public function bill(): BelongsTo
     {
         return $this->belongsTo(Bill::class);
     }
 
+    /** @return BelongsTo<Category, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

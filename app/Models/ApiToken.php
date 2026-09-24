@@ -42,11 +42,12 @@ class ApiToken extends Model
     /**
      * Find a token by its plaintext value.
      */
-    public static function findByPlainToken(string $plainToken): ?static
+    public static function findByPlainToken(string $plainToken): ?self
     {
         return static::where('token', hash('sha256', $plainToken))->first();
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -70,7 +70,7 @@ class InvoiceController extends Controller
 
         // Auto generate next invoice number
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
         $nextInvoiceNumber = $nextNumber;
 
         return view('invoices.create', compact('customers', 'items', 'taxes', 'company', 'nextNumber', 'nextInvoiceNumber', 'currencies'));
@@ -321,7 +321,7 @@ class InvoiceController extends Controller
             $request->merge(['discount_total' => $request->input('discount')]);
         }
 
-        $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::whereKey($id)->firstOrFail();
 
         $validated = $request->validate([
             'invoice_number' => 'required|string|unique:invoices,invoice_number,'.$invoice->id,
@@ -384,7 +384,7 @@ class InvoiceController extends Controller
             if ($wasActive) {
                 $customer = Customer::find($invoice->customer_id);
                 if ($customer) {
-                    $customer->decrement('balance', $invoice->due_amount);
+                    $customer->decrement('balance', (float) $invoice->due_amount);
                 }
             }
 
@@ -401,7 +401,6 @@ class InvoiceController extends Controller
                 'status' => $newStatus,
                 'notes' => $validated['notes'] ?? null,
                 'terms' => $validated['terms'] ?? 'Payment due within 30 days.',
-                'order_number' => $validated['order_number'] ?? $invoice->order_number,
                 'currency_code' => request('currency_code', $invoice->currency_code ?? 'SGD'),
                 'exchange_rate' => request('exchange_rate', $invoice->exchange_rate ?? 1.000000),
             ]);
@@ -410,7 +409,7 @@ class InvoiceController extends Controller
             if ($willBeActive) {
                 $newCustomer = Customer::find($validated['customer_id']);
                 if ($newCustomer) {
-                    $newCustomer->increment('balance', $invoice->due_amount);
+                    $newCustomer->increment('balance', (float) $invoice->due_amount);
                 }
             }
 
@@ -439,7 +438,7 @@ class InvoiceController extends Controller
             // Reverse customer balance for unpaid portion
             $customer = Customer::find($invoice->customer_id);
             if ($customer) {
-                $customer->decrement('balance', $invoice->due_amount);
+                $customer->decrement('balance', (float) $invoice->due_amount);
             }
 
             // Line items are kept so "Undo" can put the invoice back intact.
@@ -469,7 +468,7 @@ class InvoiceController extends Controller
         DB::transaction(function () use ($invoice) {
             $customer = Customer::withTrashed()->find($invoice->customer_id);
             if ($customer) {
-                $customer->increment('balance', $invoice->due_amount);
+                $customer->increment('balance', (float) $invoice->due_amount);
             }
 
             $invoice->restore();
@@ -494,7 +493,7 @@ class InvoiceController extends Controller
             // Apply customer balance now that invoice is active
             $customer = Customer::find($invoice->customer_id);
             if ($customer) {
-                $customer->increment('balance', $invoice->due_amount);
+                $customer->increment('balance', (float) $invoice->due_amount);
             }
         });
 
@@ -515,12 +514,12 @@ class InvoiceController extends Controller
                 $inv->customer->name ?? 'N/A',
                 $inv->invoice_date,
                 $inv->due_date,
-                number_format($inv->subtotal, 2),
-                number_format($inv->tax_total, 2),
-                number_format($inv->discount_total, 2),
-                number_format($inv->total, 2),
-                number_format($inv->paid_amount, 2),
-                number_format($inv->due_amount, 2),
+                number_format((float) $inv->subtotal, 2),
+                number_format((float) $inv->tax_total, 2),
+                number_format((float) $inv->discount_total, 2),
+                number_format((float) $inv->total, 2),
+                number_format((float) $inv->paid_amount, 2),
+                number_format((float) $inv->due_amount, 2),
                 $inv->status,
             ];
         }
@@ -547,12 +546,12 @@ class InvoiceController extends Controller
 
     public function duplicate($id)
     {
-        $invoice = Invoice::with('items')->findOrFail($id);
+        $invoice = Invoice::with('items')->whereKey($id)->firstOrFail();
 
         $newInvoice = DB::transaction(function () use ($invoice) {
             // Generate next invoice number
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $nextNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
             $newInvoice = Invoice::create([
                 'invoice_number' => $nextNumber,

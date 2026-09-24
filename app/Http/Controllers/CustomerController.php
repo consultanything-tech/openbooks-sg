@@ -39,11 +39,6 @@ class CustomerController extends Controller
         return view('customers.index', compact('customers', 'company', 'currencySymbol'));
     }
 
-    public function create()
-    {
-        return view('customers.create');
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -78,7 +73,7 @@ class CustomerController extends Controller
                 $c->tax_number,
                 $c->city,
                 $c->country,
-                number_format($c->balance, 2),
+                number_format((float) $c->balance, 2),
             ];
         }
 
@@ -138,12 +133,14 @@ class CustomerController extends Controller
             }
 
             try {
-                $data = array_combine($header, array_pad($row, count($header), ''));
-                if ($data === false) {
+                $row = array_pad($row, count($header), '');
+                if (count($row) !== count($header)) {
                     $skipped++;
 
                     continue;
                 }
+
+                $data = array_combine($header, $row);
 
                 $name = trim($data['name'] ?? '');
                 $email = trim($data['email'] ?? '');

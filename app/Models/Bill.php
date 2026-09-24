@@ -31,16 +31,19 @@ class Bill extends Model
         'due_amount' => 'decimal:2',
     ];
 
+    /** @return BelongsTo<Vendor, $this> */
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
     }
 
+    /** @return HasMany<BillItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(BillItem::class);
     }
 
+    /** @return HasMany<Transaction, $this> */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

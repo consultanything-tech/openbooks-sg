@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property string $name Customer name alias on joined/report queries
+ * @property float $revenue Aggregated revenue alias on report queries
+ * @property int $invoices_count Loaded via withCount() on report queries
+ */
 class Invoice extends Model
 {
     use HasFactory;
@@ -31,16 +36,19 @@ class Invoice extends Model
         'due_amount' => 'decimal:2',
     ];
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return HasMany<InvoiceItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
     }
 
+    /** @return HasMany<Transaction, $this> */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

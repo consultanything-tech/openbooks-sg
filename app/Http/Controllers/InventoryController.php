@@ -81,16 +81,13 @@ class InventoryController extends Controller
             $qty = (float) $validated['quantity'];
             $currentQty = (float) $item->stock_quantity;
 
-            $movementQty = match ($validated['adjustment_type']) {
-                'increase' => $qty,
-                'decrease' => -$qty,
-                'set' => $qty - $currentQty,
-            };
-
-            $newQty = match ($validated['adjustment_type']) {
-                'increase' => $currentQty + $qty,
-                'decrease' => $currentQty - $qty,
-                'set' => $qty,
+            // Single match (validated in:increase,decrease,set); the default arm
+            // keeps it exhaustive and reachable, computing movement and new qty.
+            [$movementQty, $newQty] = match ($validated['adjustment_type']) {
+                'increase' => [$qty, $currentQty + $qty],
+                'decrease' => [-$qty, $currentQty - $qty],
+                'set' => [$qty - $currentQty, $qty],
+                default => throw new \InvalidArgumentException('Unsupported adjustment type.'),
             };
 
             $item->update(['stock_quantity' => $newQty]);
@@ -177,9 +174,9 @@ class InventoryController extends Controller
                 $item->sku ?? '',
                 $item->name,
                 $item->category->name ?? 'General',
-                number_format($item->stock_quantity, 2),
-                number_format($item->reorder_level, 2),
-                number_format($item->cost_price, 2),
+                number_format((float) $item->stock_quantity, 2),
+                number_format((float) $item->reorder_level, 2),
+                number_format((float) $item->cost_price, 2),
                 number_format($stockValue, 2),
                 $status,
             ];

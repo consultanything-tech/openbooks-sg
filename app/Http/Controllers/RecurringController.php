@@ -352,7 +352,7 @@ class RecurringController extends Controller
     private function generateInvoice(RecurringTemplate $template, string $today): Invoice
     {
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $dueDate = $this->calculateDueDateFromFrequency($today, $template->frequency);
 
@@ -390,7 +390,7 @@ class RecurringController extends Controller
         // Increment customer balance
         $customer = Customer::find($template->customer_id);
         if ($customer) {
-            $customer->increment('balance', $template->total);
+            $customer->increment('balance', (float) $template->total);
         }
 
         return $invoice;
@@ -399,7 +399,7 @@ class RecurringController extends Controller
     private function generateBill(RecurringTemplate $template, string $today): Bill
     {
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'BILL-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $dueDate = $this->calculateDueDateFromFrequency($today, $template->frequency);
 
@@ -436,7 +436,7 @@ class RecurringController extends Controller
         // Increment vendor balance
         $vendor = Vendor::find($template->vendor_id);
         if ($vendor) {
-            $vendor->increment('balance', $template->total);
+            $vendor->increment('balance', (float) $template->total);
         }
 
         return $bill;
@@ -451,6 +451,7 @@ class RecurringController extends Controller
             'monthly' => $date->addMonth()->toDateString(),
             'quarterly' => $date->addMonths(3)->toDateString(),
             'yearly' => $date->addYear()->toDateString(),
+            default => throw new \InvalidArgumentException("Unsupported frequency: {$frequency}"),
         };
     }
 
@@ -463,6 +464,7 @@ class RecurringController extends Controller
             'monthly' => $date->addDays(30)->toDateString(),
             'quarterly' => $date->addDays(30)->toDateString(),
             'yearly' => $date->addDays(30)->toDateString(),
+            default => throw new \InvalidArgumentException("Unsupported frequency: {$frequency}"),
         };
     }
 }

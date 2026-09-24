@@ -29,16 +29,19 @@ class Quote extends Model
         'total' => 'decimal:2',
     ];
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return HasMany<QuoteItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(QuoteItem::class);
     }
 
+    /** @return BelongsTo<Invoice, $this> */
     public function convertedInvoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class, 'converted_invoice_id');

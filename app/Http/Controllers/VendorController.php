@@ -38,11 +38,6 @@ class VendorController extends Controller
         return view('vendors.index', compact('vendors', 'company'));
     }
 
-    public function create()
-    {
-        return view('vendors.create');
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -77,7 +72,7 @@ class VendorController extends Controller
                 $v->tax_number,
                 $v->city,
                 $v->country,
-                number_format($v->balance, 2),
+                number_format((float) $v->balance, 2),
             ];
         }
 

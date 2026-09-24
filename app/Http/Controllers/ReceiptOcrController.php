@@ -87,7 +87,7 @@ class ReceiptOcrController extends Controller
     protected function createExpenseClaim(array $data, Request $request)
     {
         $lastId = ExpenseClaim::withTrashed()->max('id') ?? 0;
-        $claimNumber = 'EXP-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $claimNumber = 'EXP-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $claim = ExpenseClaim::create([
             'claim_number' => $claimNumber,
@@ -124,7 +124,7 @@ class ReceiptOcrController extends Controller
         $subtotal = (float) $data['amount'] - $gstAmount;
 
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $billNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $billNumber = 'BILL-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $bill = Bill::create([
             'vendor_id' => $vendor->id,

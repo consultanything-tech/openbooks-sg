@@ -217,7 +217,7 @@ class BankingController extends Controller
                 $tx->type,
                 $tx->description,
                 $tx->category->name ?? 'General',
-                number_format($tx->amount, 2),
+                number_format((float) $tx->amount, 2),
                 $tx->payment_method ?? 'Bank',
                 $tx->reference_number,
             ];
@@ -284,12 +284,14 @@ class BankingController extends Controller
                 }
 
                 try {
-                    $data = array_combine($header, array_pad($row, count($header), ''));
-                    if ($data === false) {
+                    $row = array_pad($row, count($header), '');
+                    if (count($row) !== count($header)) {
                         $skipped++;
 
                         continue;
                     }
+
+                    $data = array_combine($header, $row);
 
                     $type = strtolower(trim($data['type'] ?? ''));
                     $amount = floatval(str_replace(',', '', $data['amount'] ?? '0'));

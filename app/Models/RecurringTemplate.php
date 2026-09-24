@@ -28,21 +28,25 @@ class RecurringTemplate extends Model
         'is_active' => 'boolean',
     ];
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Vendor, $this> */
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
     }
 
+    /** @return HasMany<RecurringTemplateItem, $this> */
     public function items(): HasMany
     {
         return $this->hasMany(RecurringTemplateItem::class);
     }
 
+    /** @return HasMany<Invoice, $this> */
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'recurring_template_id');

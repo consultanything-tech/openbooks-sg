@@ -13,8 +13,8 @@ class ReceiptOcrService
      */
     public function extractFromImage(string $imagePath): array
     {
-        $company = Company::first();
-        $apiKey = ! empty($company?->nvidia_api_key)
+        $company = Company::first() ?? new Company;
+        $apiKey = ! empty($company->nvidia_api_key)
             ? trim($company->nvidia_api_key)
             : trim(config('services.nvidia.api_key', ''));
 
@@ -28,9 +28,9 @@ class ReceiptOcrService
     /**
      * Primary method: use NVIDIA NIM vision API for OCR extraction.
      */
-    protected function extractWithNvidiaNim(string $imagePath, string $apiKey, ?Company $company): array
+    protected function extractWithNvidiaNim(string $imagePath, string $apiKey, Company $company): array
     {
-        $model = ! empty($company?->nvidia_model)
+        $model = ! empty($company->nvidia_model)
             ? trim($company->nvidia_model)
             : config('services.nvidia.model', 'meta/llama-3.2-11b-vision-instruct');
 

@@ -68,7 +68,7 @@ class GenerateRecurring extends Command
     private function generateInvoice(RecurringTemplate $template, string $today): void
     {
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $dueDate = Carbon::parse($today)->addDays(30)->toDateString();
 
@@ -105,14 +105,14 @@ class GenerateRecurring extends Command
 
         $customer = Customer::find($template->customer_id);
         if ($customer) {
-            $customer->increment('balance', $template->total);
+            $customer->increment('balance', (float) $template->total);
         }
     }
 
     private function generateBill(RecurringTemplate $template, string $today): void
     {
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'BILL-'.date('Y').'-'.str_pad((string) ($lastId + 1), 4, '0', STR_PAD_LEFT);
 
         $dueDate = Carbon::parse($today)->addDays(30)->toDateString();
 
@@ -148,7 +148,7 @@ class GenerateRecurring extends Command
 
         $vendor = Vendor::find($template->vendor_id);
         if ($vendor) {
-            $vendor->increment('balance', $template->total);
+            $vendor->increment('balance', (float) $template->total);
         }
     }
 
@@ -161,6 +161,7 @@ class GenerateRecurring extends Command
             'monthly' => $date->addMonth()->toDateString(),
             'quarterly' => $date->addMonths(3)->toDateString(),
             'yearly' => $date->addYear()->toDateString(),
+            default => throw new \InvalidArgumentException("Unsupported recurring frequency: {$frequency}"),
         };
     }
 }
