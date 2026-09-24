@@ -233,7 +233,7 @@ class DemoDataSeeder extends Seeder
             ['name' => 'Technical Support Plan', 'sku' => 'SRV-SUP-001', 'description' => 'Priority technical support, 24/7 coverage', 'sale_price' => 800.00, 'purchase_price' => 300.00, 'unit' => 'month', 'category' => 'Subscription Revenue'],
             ['name' => 'Network Setup & Config', 'sku' => 'SRV-NET-001', 'description' => 'Office network installation and configuration', 'sale_price' => 2200.00, 'purchase_price' => 900.00, 'unit' => 'project', 'category' => 'Consulting Services'],
             ['name' => 'Server Maintenance', 'sku' => 'SRV-MNT-001', 'description' => 'Monthly server patching and health checks', 'sale_price' => 350.00, 'purchase_price' => 120.00, 'unit' => 'month', 'category' => 'Subscription Revenue'],
-            ['name' => 'Laptop - ThinkPad T14s', 'sku' => 'HW-LAP-001', 'description' => 'Lenovo ThinkPad T14s Gen 4, i7, 16GB RAM', 'sale_price' => 2100.00, 'purchase_price' => 1500.00, 'unit' => 'unit', 'category' => 'Product Sales', 'track_inventory' => true, 'stock_quantity' => 12, 'reorder_level' => 3],
+            ['name' => 'Laptop - Business 14in', 'sku' => 'HW-LAP-001', 'description' => 'Business laptop 14in Gen 4, i7, 16GB RAM', 'sale_price' => 2100.00, 'purchase_price' => 1500.00, 'unit' => 'unit', 'category' => 'Product Sales', 'track_inventory' => true, 'stock_quantity' => 12, 'reorder_level' => 3],
             ['name' => 'Monitor - Dell U2723QE', 'sku' => 'HW-MON-001', 'description' => 'Dell 27-inch 4K USB-C Hub Monitor', 'sale_price' => 780.00, 'purchase_price' => 550.00, 'unit' => 'unit', 'category' => 'Product Sales', 'track_inventory' => true, 'stock_quantity' => 8, 'reorder_level' => 2],
             ['name' => 'Docking Station', 'sku' => 'HW-DCK-001', 'description' => 'Universal USB-C docking station with dual display', 'sale_price' => 320.00, 'purchase_price' => 180.00, 'unit' => 'unit', 'category' => 'Product Sales', 'track_inventory' => true, 'stock_quantity' => 25, 'reorder_level' => 5],
             ['name' => 'GST Filing Service', 'sku' => 'SRV-GST-001', 'description' => 'Quarterly GST F5 preparation and filing with IRAS', 'sale_price' => 600.00, 'purchase_price' => 0.00, 'unit' => 'quarter', 'category' => 'Professional Fees'],
@@ -321,6 +321,7 @@ class DemoDataSeeder extends Seeder
         ];
 
         $invoices = [];
+        $base = (int) Invoice::where('invoice_number', 'like', 'INV-2026-%')->count();
 
         for ($i = 0; $i < 30; $i++) {
             $customer = $customers[$i % count($customers)];
@@ -365,7 +366,7 @@ class DemoDataSeeder extends Seeder
             }
 
             $invoice = Invoice::create([
-                'invoice_number' => 'INV-2026-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'invoice_number' => 'INV-2026-'.str_pad($base + $i + 1, 3, '0', STR_PAD_LEFT),
                 'customer_id' => $customer->id,
                 'invoice_date' => $invoiceDate,
                 'due_date' => $dueDate,
@@ -603,7 +604,7 @@ class DemoDataSeeder extends Seeder
             'Tax filing services - Q3 GST',
             'Annual audit support 2025',
             'Server maintenance and patching - September',
-            'ThinkPad T14s replacement unit',
+            'Business laptop replacement unit',
         ];
 
         for ($i = 0; $i < 8; $i++) {
@@ -708,7 +709,7 @@ class DemoDataSeeder extends Seeder
                 'reference' => 'RENT-SEP-2026',
                 'lines' => [
                     ['account_id' => $accountIds['6100'], 'debit' => 3200.00, 'credit' => 0, 'description' => 'September office rent expense'],
-                    ['account_id' => $accountIds['2000'], 'debit' => 0, 'credit' => 3200.00, 'description' => 'Accrued rent payable to WeWork'],
+                    ['account_id' => $accountIds['2000'], 'debit' => 0, 'credit' => 3200.00, 'description' => 'Accrued rent payable to CoWork Spaces SG'],
                 ],
             ],
             [
@@ -780,10 +781,10 @@ class DemoDataSeeder extends Seeder
             'claim_number' => 'EXP-2026-001',
             'user_id' => $users['accountant']->id,
             'claim_date' => now()->subDays(14),
-            'title' => 'Client lunch meeting at Marina Bay Sands',
-            'description' => 'Business lunch with Marina Bay Holdings to discuss Q4 ERP renewal. 3 attendees.',
+            'title' => 'Client lunch meeting - quarterly review',
+            'description' => 'Business lunch with client team to discuss Q4 ERP renewal. 3 attendees.',
             'total_amount' => 285.00,
-            'status' => 'pending',
+            'status' => 'submitted',
             'category_id' => $categories['Professional Fees'] ?? null,
         ]);
 
@@ -804,7 +805,7 @@ class DemoDataSeeder extends Seeder
             'claim_number' => 'EXP-2026-003',
             'user_id' => $users['accountant']->id,
             'claim_date' => now()->subDays(35),
-            'title' => 'Office supplies from Popular Bookstore',
+            'title' => 'Office supplies from stationery supplier',
             'description' => 'Printer paper, toner cartridges, filing cabinets, and stationery for the finance team.',
             'total_amount' => 432.80,
             'status' => 'paid',

@@ -80,7 +80,14 @@ This project is open source under the MIT license. Contributions, issues, and fe
 
 ## Screenshots
 
-> Screenshots coming soon. See the [demo](#quick-start) to explore the interface.
+| | |
+|:---:|:---:|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Invoices](docs/screenshots/invoices.png) |
+| **Financial dashboard** — cash position, receivables, payables, and cash-flow forecast at a glance | **Invoices** — list, filter, and track invoice status from draft to paid |
+| ![Invoice detail](docs/screenshots/invoice-detail.png) | ![Profit & Loss](docs/screenshots/profit-loss.png) |
+| **Invoice detail** — line items, GST breakdown, and payment state | **Profit & Loss** — accrual-basis statement with reporting-period controls |
+| ![Banking](docs/screenshots/banking.png) | ![Ask OpenBooks](docs/screenshots/ai-assistant.png) |
+| **Banking** — multi-account balances and transaction history | **Ask OpenBooks** — plain-language questions answered live from your books |
 
 ## Quick Start
 
