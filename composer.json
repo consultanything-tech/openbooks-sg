@@ -1,12 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "openbooks/sg",
+    "name": "openbooks-sg/openbooks-sg",
     "type": "project",
     "description": "OpenBooks SG - accounting, invoicing and billing application.",
     "keywords": ["openbooks", "accounting", "invoicing", "laravel"],
     "license": "MIT",
     "require": {
-        "php": "^8.1|^8.2|^8.3|^8.4",
+        "php": "^8.3",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0"
     },
