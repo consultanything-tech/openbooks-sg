@@ -15,6 +15,12 @@ class CheckInstallation
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // The test suite runs against a fresh application on every run and
+        // must not depend on (or mutate) the local storage/installed marker.
+        if (app()->environment('testing')) {
+            return $next($request);
+        }
+
         $installedFile = storage_path('installed');
         $isInstalled = file_exists($installedFile);
         $isInstallRoute = $request->is('install*') || $request->is('install');

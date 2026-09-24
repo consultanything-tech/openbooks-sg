@@ -18,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Before installation, force session & cache to file driver so web installer never tries to connect to an unconfigured database
-        if (!file_exists(storage_path('installed'))) {
+        if (!app()->environment('testing') && !file_exists(storage_path('installed'))) {
             config([
                 'session.driver' => 'file',
                 'cache.default' => 'file',
@@ -45,33 +45,38 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($token);
         });
 
-        if (file_exists(storage_path('installed'))) {
+        // Shared company context for all views. Registered unconditionally so
+        // views never break on fresh clones or in tests; the database lookup
+        // is deferred to render time and falls back to safe defaults when the
+        // schema is not available yet (e.g. during installation).
+        View::composer('*', function ($view) {
             try {
-                View::composer('*', function ($view) {
-                    $company = Company::first() ?? new Company([
-                        'name' => 'OpenBooks SG',
-                        'currency_code' => 'SGD',
-                        'currency_symbol' => 'S$',
-                        'financial_year' => 'January - December',
-                        'financial_year_start' => '01-01'
-                    ]);
-                    $view->with('company', $company);
-                    $view->with('currencySymbol', $company->currency_symbol ?? 'S$');
-                });
-
-                Blade::directive('money', function ($expression) {
-                    return "<?php echo (\$currencySymbol ?? 'S$') . number_format($expression, 2); ?>";
-                });
-
-                // Role-based Blade directive: @canEdit ... @endcanEdit
-                // Content inside is hidden from VIEWER role users
-                Blade::if('canEdit', function () {
-                    return \Illuminate\Support\Facades\Auth::check()
-                        && strtoupper(\Illuminate\Support\Facades\Auth::user()->role) !== 'VIEWER';
-                });
-            } catch (\Throwable $e) {
-                // Ignore during initial migrations
+                $company = Company::first();
+            } catch (\Throwable) {
+                $company = null;
             }
-        }
+
+            $company ??= new Company([
+                'name' => 'OpenBooks SG',
+                'currency_code' => 'SGD',
+                'currency_symbol' => 'S$',
+                'financial_year' => 'January - December',
+                'financial_year_start' => '01-01'
+            ]);
+
+            $view->with('company', $company);
+            $view->with('currencySymbol', $company->currency_symbol ?? 'S$');
+        });
+
+        Blade::directive('money', function ($expression) {
+            return "<?php echo (\$currencySymbol ?? 'S$') . number_format($expression, 2); ?>";
+        });
+
+        // Role-based Blade directive: @canEdit ... @endcanEdit
+        // Content inside is hidden from VIEWER role users
+        Blade::if('canEdit', function () {
+            return \Illuminate\Support\Facades\Auth::check()
+                && strtoupper(\Illuminate\Support\Facades\Auth::user()->role) !== 'VIEWER';
+        });
     }
 }

@@ -170,7 +170,7 @@ class AskOpenBooksTest extends TestCase
 
     public function test_llm_resolves_intent_and_narrates_when_key_configured(): void
     {
-        Company::query()->update(['nvidia_api_key' => 'nvapi-test-key']);
+        Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
 
         \Illuminate\Support\Facades\Http::fake([
             'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::sequence()
@@ -188,7 +188,7 @@ class AskOpenBooksTest extends TestCase
 
     public function test_llm_bad_key_is_discarded_by_scope_guard(): void
     {
-        Company::query()->update(['nvidia_api_key' => 'nvapi-test-key']);
+        Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
         \Illuminate\Support\Facades\Http::fake([
             'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::response(
                 ['choices' => [['message' => ['content' => '{"key": "drop_all_tables"}']]]]
@@ -202,7 +202,7 @@ class AskOpenBooksTest extends TestCase
 
     public function test_llm_outage_falls_back_gracefully(): void
     {
-        Company::query()->update(['nvidia_api_key' => 'nvapi-test-key']);
+        Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
         \Illuminate\Support\Facades\Http::fake([
             'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::response([], 500),
         ]);

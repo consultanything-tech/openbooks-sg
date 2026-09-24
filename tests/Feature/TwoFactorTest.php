@@ -30,9 +30,11 @@ class TwoFactorTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'secret',
-            'qr_url',
             'otpauth_url',
         ]);
+
+        // The TOTP secret must never be sent to a third-party QR service.
+        $response->assertJsonMissingPath('qr_url');
     }
 
     public function test_2fa_challenge_page_loads(): void
