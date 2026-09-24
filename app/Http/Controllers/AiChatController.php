@@ -5,20 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\BankAccount;
 use App\Models\Bill;
 use App\Models\BillItem;
-use App\Models\Category;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
 use App\Models\Item;
 use App\Models\Quote;
-use App\Models\QuoteItem;
 use App\Models\Tax;
 use App\Models\Vendor;
 use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -43,11 +39,12 @@ class AiChatController extends Controller
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$', 'name' => 'OpenBooks Enterprise']);
         $currencySymbol = $company->currency_symbol ?? 'S$';
 
-        $apiKey = !empty($company->nvidia_api_key) ? trim($company->nvidia_api_key) : trim(config('services.nvidia.api_key', ''));
-        $model = !empty($company->nvidia_model) ? trim($company->nvidia_model) : config('services.nvidia.model', 'meta/llama-3.2-11b-vision-instruct');
+        $apiKey = ! empty($company->nvidia_api_key) ? trim($company->nvidia_api_key) : trim(config('services.nvidia.api_key', ''));
+        $model = ! empty($company->nvidia_model) ? trim($company->nvidia_model) : config('services.nvidia.model', 'meta/llama-3.2-11b-vision-instruct');
 
         if (empty($apiKey)) {
             $settingsUrl = route('settings.index');
+
             return response()->json([
                 'success' => true,
                 'reply' => "**NVIDIA API Key Required**\n\nNo default key is configured. Please enter your personal free NVIDIA API Key in Settings to activate the AI Copilot and Voice Engine.\n\n**How to get a free key (2 minutes):**\n1. Go to https://build.nvidia.com and create a free account (or sign in).\n2. Open the **API Keys** page from your avatar menu (build.nvidia.com/settings/api-keys).\n3. Click **Generate API Key** and copy it — keys start with `nvapi-`.\n4. Paste it in Settings → AI Assistant and save. NVIDIA includes free inference credits with every account.\n\n[Go to Settings to enter your NVIDIA API Key]({$settingsUrl})",
@@ -201,7 +198,7 @@ EOT;
 
         // Build messages array
         $messages = [
-            ['role' => 'system', 'content' => $systemPrompt]
+            ['role' => 'system', 'content' => $systemPrompt],
         ];
 
         // Include last 6 history messages for conversation context
@@ -225,7 +222,7 @@ EOT;
         // Call NVIDIA NIM API
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post(config('services.nvidia.api_url', 'https://integrate.api.nvidia.com/v1/chat/completions'), [
                 'model' => $model,
@@ -234,11 +231,12 @@ EOT;
                 'max_tokens' => 600,
             ]);
 
-            if (!$response->successful()) {
-                Log::error('NVIDIA API Error: ' . $response->body());
+            if (! $response->successful()) {
+                Log::error('NVIDIA API Error: '.$response->body());
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'AI Service error (' . $response->status() . '). ' . $response->body(),
+                    'message' => 'AI Service error ('.$response->status().'). '.$response->body(),
                 ], 502);
             }
 
@@ -255,7 +253,7 @@ EOT;
 
             $parsed = json_decode($cleanJson, true);
 
-            if (!is_array($parsed) || !isset($parsed['message'])) {
+            if (! is_array($parsed) || ! isset($parsed['message'])) {
                 // Fallback if parsing failed
                 return response()->json([
                     'success' => true,
@@ -292,22 +290,22 @@ EOT;
                     $isVendor = $vendors->contains(fn ($v) => $match($v->name));
 
                     $msg = mb_strtolower($userMessage);
-                    $fromSense = str_contains($msg, 'from ' . $norm)
+                    $fromSense = str_contains($msg, 'from '.$norm)
                         || str_contains($msg, 'received from')
                         || str_contains($msg, 'we owe')
                         || str_contains($msg, 'our bill')
                         || str_contains($msg, 'supplier')
                         || str_contains($msg, 'vendor bill');
-                    $toSense = str_contains($msg, 'to ' . $norm)
+                    $toSense = str_contains($msg, 'to '.$norm)
                         || str_contains($msg, 'bill to')
                         || str_contains($msg, 'invoice to')
-                        || preg_match('/\bbills?\s+' . preg_quote($norm, '/') . '/', $msg) === 1;
+                        || preg_match('/\bbills?\s+'.preg_quote($norm, '/').'/', $msg) === 1;
                     $salesSense = $toSense || str_contains($msg, 'invoice');
 
-                    if ($action === 'create_bill' && $isCustomer && (!$isVendor || $salesSense || !$fromSense)) {
+                    if ($action === 'create_bill' && $isCustomer && (! $isVendor || $salesSense || ! $fromSense)) {
                         $action = 'create_invoice';
                         $replyMessage .= "\n\n(Interpreted as invoicing the customer, since {$party} is one of your customers.)";
-                    } elseif ($action === 'create_invoice' && $isVendor && (!$isCustomer || ($fromSense && !$salesSense))) {
+                    } elseif ($action === 'create_invoice' && $isVendor && (! $isCustomer || ($fromSense && ! $salesSense))) {
                         $action = 'create_bill';
                         $replyMessage .= "\n\n(Interpreted as a vendor purchase bill, since {$party} is one of your vendors.)";
                     }
@@ -321,16 +319,16 @@ EOT;
             if (in_array($action, $writeActions, true) && $confidence < 0.5) {
                 $action = 'none';
                 $replyMessage = 'I want to make sure I get this right before touching your books. '
-                    . 'Could you confirm what you need — for example "create an invoice for <customer> for <amount>" '
-                    . 'or "record a bill from <vendor> for <amount>"?';
+                    .'Could you confirm what you need — for example "create an invoice for <customer> for <amount>" '
+                    .'or "record a bill from <vendor> for <amount>"?';
             }
 
             // Execute action if present
             $actionResult = $this->executeAction($action, $params, $currencySymbol);
 
             // If action produced additional text or links, merge nicely
-            if (!empty($actionResult['reply_append'])) {
-                $replyMessage .= "\n\n" . $actionResult['reply_append'];
+            if (! empty($actionResult['reply_append'])) {
+                $replyMessage .= "\n\n".$actionResult['reply_append'];
             }
 
             // Strictly strip any emojis from the output
@@ -345,10 +343,11 @@ EOT;
             ]);
 
         } catch (\Exception $e) {
-            Log::error('AI Chatbot Exception: ' . $e->getMessage());
+            Log::error('AI Chatbot Exception: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'An error occurred while contacting the AI assistant: ' . $e->getMessage(),
+                'message' => 'An error occurred while contacting the AI assistant: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -375,13 +374,13 @@ EOT;
 
                     if (empty($partyName) || $amount <= 0) {
                         return [
-                            'reply_append' => "*Please provide the client name and billing amount so I can generate the invoice.*"
+                            'reply_append' => '*Please provide the client name and billing amount so I can generate the invoice.*',
                         ];
                     }
 
                     // Find or create customer
-                    $customer = Customer::where('name', 'like', '%' . $partyName . '%')->first();
-                    if (!$customer) {
+                    $customer = Customer::where('name', 'like', '%'.$partyName.'%')->first();
+                    if (! $customer) {
                         $customer = Customer::create([
                             'name' => $partyName,
                             'is_active' => true,
@@ -397,7 +396,7 @@ EOT;
 
                     // Next invoice number
                     $lastId = Invoice::withTrashed()->max('id') ?? 0;
-                    $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                    $invoiceNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
                     $invoice = Invoice::create([
                         'invoice_number' => $invoiceNumber,
@@ -441,9 +440,9 @@ EOT;
 
                     $res['card'] = [
                         'type' => 'invoice',
-                        'title' => 'Invoice ' . $invoiceNumber . ' Created',
+                        'title' => 'Invoice '.$invoiceNumber.' Created',
                         'party' => $customer->name,
-                        'amount' => $currencySymbol . number_format($grandTotal, 2),
+                        'amount' => $currencySymbol.number_format($grandTotal, 2),
                         'item' => $itemName,
                         'status' => 'Issued / Due',
                         'url' => $invoiceUrl,
@@ -462,13 +461,13 @@ EOT;
 
                     if (empty($partyName) || $amount <= 0) {
                         return [
-                            'reply_append' => '*Please provide the client name and the quoted amount so I can prepare the quote.*'
+                            'reply_append' => '*Please provide the client name and the quoted amount so I can prepare the quote.*',
                         ];
                     }
 
                     // Find or create customer
-                    $customer = Customer::where('name', 'like', '%' . $partyName . '%')->first();
-                    if (!$customer) {
+                    $customer = Customer::where('name', 'like', '%'.$partyName.'%')->first();
+                    if (! $customer) {
                         $customer = Customer::create([
                             'name' => $partyName,
                             'is_active' => true,
@@ -484,7 +483,7 @@ EOT;
 
                     // Next quote number (same convention as QuoteController)
                     $lastQuoteId = Quote::withTrashed()->max('id') ?? 0;
-                    $quoteNumber = 'QUO-' . date('Y') . '-' . str_pad($lastQuoteId + 1, 4, '0', STR_PAD_LEFT);
+                    $quoteNumber = 'QUO-'.date('Y').'-'.str_pad($lastQuoteId + 1, 4, '0', STR_PAD_LEFT);
 
                     // Quotes are non-binding: status sent, no receivable posted.
                     $quote = Quote::create([
@@ -525,9 +524,9 @@ EOT;
 
                     $res['card'] = [
                         'type' => 'quote',
-                        'title' => 'Quote ' . $quoteNumber . ' Created',
+                        'title' => 'Quote '.$quoteNumber.' Created',
                         'party' => $customer->name,
-                        'amount' => $currencySymbol . number_format($grandTotal, 2),
+                        'amount' => $currencySymbol.number_format($grandTotal, 2),
                         'item' => $itemName,
                         'status' => 'Awaiting Approval',
                         'url' => $quoteUrl,
@@ -546,13 +545,13 @@ EOT;
 
                     if (empty($partyName) || $amount <= 0) {
                         return [
-                            'reply_append' => "*Please provide the vendor name and bill amount so I can record the bill.*"
+                            'reply_append' => '*Please provide the vendor name and bill amount so I can record the bill.*',
                         ];
                     }
 
                     // Find or create vendor
-                    $vendor = Vendor::where('name', 'like', '%' . $partyName . '%')->first();
-                    if (!$vendor) {
+                    $vendor = Vendor::where('name', 'like', '%'.$partyName.'%')->first();
+                    if (! $vendor) {
                         $vendor = Vendor::create([
                             'name' => $partyName,
                             'is_active' => true,
@@ -566,7 +565,7 @@ EOT;
                     $grandTotal = $subtotal + $lineTax;
 
                     $lastId = Bill::withTrashed()->max('id') ?? 0;
-                    $billNumber = 'BILL-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+                    $billNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
                     $bill = Bill::create([
                         'vendor_id' => $vendor->id,
@@ -608,9 +607,9 @@ EOT;
 
                     $res['card'] = [
                         'type' => 'bill',
-                        'title' => 'Vendor Bill ' . $billNumber . ' Created',
+                        'title' => 'Vendor Bill '.$billNumber.' Created',
                         'party' => $vendor->name,
-                        'amount' => $currencySymbol . number_format($grandTotal, 2),
+                        'amount' => $currencySymbol.number_format($grandTotal, 2),
                         'item' => $itemName,
                         'status' => 'Payable Pending',
                         'url' => $billUrl,
@@ -636,7 +635,7 @@ EOT;
                     $this->logActivity('created', "Created customer {$c->name} via AI Assistant", 'Customer', $c->id, ['source' => 'ai_assistant']);
                     $res['card'] = [
                         'type' => 'customer',
-                        'title' => 'Customer Added: ' . $c->name,
+                        'title' => 'Customer Added: '.$c->name,
                         'party' => $c->name,
                         'amount' => 'Active',
                         'url' => $url,
@@ -661,7 +660,7 @@ EOT;
                     $this->logActivity('created', "Created vendor {$v->name} via AI Assistant", 'Vendor', $v->id, ['source' => 'ai_assistant']);
                     $res['card'] = [
                         'type' => 'vendor',
-                        'title' => 'Vendor Added: ' . $v->name,
+                        'title' => 'Vendor Added: '.$v->name,
                         'party' => $v->name,
                         'amount' => 'Active',
                         'url' => $url,
@@ -677,27 +676,27 @@ EOT;
                     $totalReceivables = Customer::sum('balance');
                     $totalPayables = Vendor::sum('balance');
 
-                    if (!empty($partyName)) {
-                        $cust = Customer::where('name', 'like', '%' . $partyName . '%')->first();
-                        $vend = Vendor::where('name', 'like', '%' . $partyName . '%')->first();
+                    if (! empty($partyName)) {
+                        $cust = Customer::where('name', 'like', '%'.$partyName.'%')->first();
+                        $vend = Vendor::where('name', 'like', '%'.$partyName.'%')->first();
                         if ($cust) {
-                            $output[] = "**Customer**: [{$cust->name}](" . route('customers.show', $cust->id) . ") — Pending Receivable: **{$currencySymbol}" . number_format($cust->balance, 2) . "**";
+                            $output[] = "**Customer**: [{$cust->name}](".route('customers.show', $cust->id).") — Pending Receivable: **{$currencySymbol}".number_format($cust->balance, 2).'**';
                         }
                         if ($vend) {
-                            $output[] = "**Vendor**: [{$vend->name}](" . route('vendors.show', $vend->id) . ") — Outstanding Payable: **{$currencySymbol}" . number_format($vend->balance, 2) . "**";
+                            $output[] = "**Vendor**: [{$vend->name}](".route('vendors.show', $vend->id).") — Outstanding Payable: **{$currencySymbol}".number_format($vend->balance, 2).'**';
                         }
-                        if (!$cust && !$vend) {
+                        if (! $cust && ! $vend) {
                             $output[] = "No party found matching \"{$partyName}\".";
                         }
                     } else {
-                        $output[] = "**Total Customer Receivables**: **{$currencySymbol}" . number_format($totalReceivables, 2) . "**";
-                        $output[] = "**Total Vendor Payables**: **{$currencySymbol}" . number_format($totalPayables, 2) . "**";
+                        $output[] = "**Total Customer Receivables**: **{$currencySymbol}".number_format($totalReceivables, 2).'**';
+                        $output[] = "**Total Vendor Payables**: **{$currencySymbol}".number_format($totalPayables, 2).'**';
 
                         $dueCustomers = Customer::where('balance', '>', 0)->orderByDesc('balance')->take(5)->get();
                         if ($dueCustomers->count() > 0) {
                             $output[] = "\n*Top Pending Customers*:";
                             foreach ($dueCustomers as $dc) {
-                                $output[] = "• [{$dc->name}](" . route('customers.show', $dc->id) . "): {$currencySymbol}" . number_format($dc->balance, 2);
+                                $output[] = "• [{$dc->name}](".route('customers.show', $dc->id)."): {$currencySymbol}".number_format($dc->balance, 2);
                             }
                         }
 
@@ -705,7 +704,7 @@ EOT;
                         if ($dueVendors->count() > 0) {
                             $output[] = "\n*Top Pending Vendors*:";
                             foreach ($dueVendors as $dv) {
-                                $output[] = "• [{$dv->name}](" . route('vendors.show', $dv->id) . "): {$currencySymbol}" . number_format($dv->balance, 2);
+                                $output[] = "• [{$dv->name}](".route('vendors.show', $dv->id)."): {$currencySymbol}".number_format($dv->balance, 2);
                             }
                         }
                     }
@@ -733,7 +732,7 @@ EOT;
 
                     $this->logActivity('created', "Created item {$item->name} via AI Assistant", 'Item', $item->id, ['source' => 'ai_assistant']);
 
-                    $res['reply_append'] = "**Item Added**: {$item->name} (Price: {$currencySymbol}" . number_format($price, 2) . ") | [View Catalog](" . route('items.index') . ")";
+                    $res['reply_append'] = "**Item Added**: {$item->name} (Price: {$currencySymbol}".number_format($price, 2).') | [View Catalog]('.route('items.index').')';
                     break;
 
                 case 'check_taxes':
@@ -742,7 +741,7 @@ EOT;
                     foreach ($taxes as $t) {
                         $taxList[] = "• **{$t->name}**: {$t->rate}%";
                     }
-                    $res['reply_append'] = "**Configured Tax Rates**:\n" . implode("\n", $taxList) . "\n[Manage Taxes & Settings](" . route('settings.index') . ")";
+                    $res['reply_append'] = "**Configured Tax Rates**:\n".implode("\n", $taxList)."\n[Manage Taxes & Settings](".route('settings.index').')';
                     break;
 
                 case 'add_tax':
@@ -757,7 +756,7 @@ EOT;
                         'is_active' => true,
                     ]);
                     $this->logActivity('created', "Created tax rate {$tax->name} ({$tax->rate}%) via AI Assistant", 'Tax', $tax->id, ['source' => 'ai_assistant']);
-                    $res['reply_append'] = "**Tax Created**: {$tax->name} ({$tax->rate}%) | [View Settings](" . route('settings.index') . ")";
+                    $res['reply_append'] = "**Tax Created**: {$tax->name} ({$tax->rate}%) | [View Settings](".route('settings.index').')';
                     break;
 
                 case 'check_banking':
@@ -765,9 +764,9 @@ EOT;
                     $totalCash = $accounts->sum('current_balance');
                     $accList = [];
                     foreach ($accounts as $a) {
-                        $accList[] = "• **{$a->name}** (A/C: " . ($a->account_number ?: 'Cash') . "): **{$currencySymbol}" . number_format($a->current_balance, 2) . "**";
+                        $accList[] = "• **{$a->name}** (A/C: ".($a->account_number ?: 'Cash')."): **{$currencySymbol}".number_format($a->current_balance, 2).'**';
                     }
-                    $res['reply_append'] = "**Bank & Cash Balances** (Total: **{$currencySymbol}" . number_format($totalCash, 2) . "**):\n" . implode("\n", $accList) . "\n[Open Banking Ledger](" . route('banking.index') . ") | [New Transfer](" . route('banking.transfer') . ")";
+                    $res['reply_append'] = "**Bank & Cash Balances** (Total: **{$currencySymbol}".number_format($totalCash, 2)."**):\n".implode("\n", $accList)."\n[Open Banking Ledger](".route('banking.index').') | [New Transfer]('.route('banking.transfer').')';
                     break;
 
                 case 'check_reports':
@@ -777,11 +776,11 @@ EOT;
                     $netProfit = $invoicedSales - $billsExpense;
 
                     $res['reply_append'] = "**Profit & Loss Summary**:\n"
-                        . "• **Gross Sales Invoiced**: {$currencySymbol}" . number_format($invoicedSales, 2) . "\n"
-                        . "• **Cash Collected**: {$currencySymbol}" . number_format($collectedSales, 2) . "\n"
-                        . "• **Total Operating Expenses & Bills**: {$currencySymbol}" . number_format($billsExpense, 2) . "\n"
-                        . "• **Net Operating Profit**: **{$currencySymbol}" . number_format($netProfit, 2) . "**\n"
-                        . "[Open Detailed Profit & Loss Report](" . route('reports.profit_loss') . ")";
+                        ."• **Gross Sales Invoiced**: {$currencySymbol}".number_format($invoicedSales, 2)."\n"
+                        ."• **Cash Collected**: {$currencySymbol}".number_format($collectedSales, 2)."\n"
+                        ."• **Total Operating Expenses & Bills**: {$currencySymbol}".number_format($billsExpense, 2)."\n"
+                        ."• **Net Operating Profit**: **{$currencySymbol}".number_format($netProfit, 2)."**\n"
+                        .'[Open Detailed Profit & Loss Report]('.route('reports.profit_loss').')';
                     break;
 
                 case 'navigate':
@@ -807,8 +806,8 @@ EOT;
                     break;
             }
         } catch (\Exception $e) {
-            Log::error('Action execution failed: ' . $e->getMessage());
-            $res['reply_append'] = "*Action execution note: " . $e->getMessage() . "*";
+            Log::error('Action execution failed: '.$e->getMessage());
+            $res['reply_append'] = '*Action execution note: '.$e->getMessage().'*';
         }
 
         return $res;

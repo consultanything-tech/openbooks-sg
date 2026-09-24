@@ -25,7 +25,7 @@ class ItemFactory extends Factory
                 'Cybersecurity Audit', 'Mobile App Development',
                 'Server Maintenance (Monthly)', 'Technical Support Plan',
             ]),
-            'sku' => 'SKU-' . strtoupper(fake()->bothify('??####')),
+            'sku' => 'SKU-'.strtoupper(fake()->bothify('??####')),
             'description' => fake()->optional()->sentence(),
             'category_id' => null,
             'sale_price' => $salePrice,

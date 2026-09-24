@@ -38,7 +38,7 @@ class InvoiceTest extends TestCase
         $this->actingAsAdmin();
 
         $customer = Customer::factory()->create();
-        $invoiceNumber = 'INV-TEST-' . Str::random(8);
+        $invoiceNumber = 'INV-TEST-'.Str::random(8);
 
         $response = $this->post('/invoices', [
             'invoice_number' => $invoiceNumber,
@@ -73,7 +73,7 @@ class InvoiceTest extends TestCase
             'customer_id' => $customer->id,
         ]);
 
-        $response = $this->get('/invoices/' . $invoice->id);
+        $response = $this->get('/invoices/'.$invoice->id);
         $response->assertStatus(200);
     }
 

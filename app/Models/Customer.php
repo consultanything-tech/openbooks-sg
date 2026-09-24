@@ -4,18 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
+    use HasFactory;
     use SoftDeletes;
 
-    use HasFactory;
-
     protected $fillable = [
-        'name', 'email', 'phone', 'company_name', 'tax_number', 
-        'address', 'city', 'country', 'currency', 'balance', 'is_active'
+        'name', 'email', 'phone', 'company_name', 'tax_number',
+        'address', 'city', 'country', 'currency', 'balance', 'is_active',
     ];
 
     protected $casts = [
@@ -42,6 +41,7 @@ class Customer extends Model
         if ($dueInvoices > 0) {
             return $dueInvoices;
         }
+
         return (float) ($this->balance ?? 0);
     }
 }

@@ -6,18 +6,32 @@ use App\Models\Category;
 use App\Models\Company;
 use App\Models\Item;
 use App\Models\Tax;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 class ItemController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Item::class; }
-    protected function bulkIndexRoute(): string { return 'items.index'; }
-    protected function bulkRestoreRouteName(): string { return 'items.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Item::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'items.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'items.bulk_restore';
+    }
+
     public function index()
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -41,7 +55,7 @@ class ItemController extends Controller
                 $it->category->name ?? 'General',
                 number_format($it->sale_price, 2),
                 number_format($it->purchase_price, 2),
-                $it->tax ? $it->tax->name . ' (' . $it->tax->rate . '%)' : 'None',
+                $it->tax ? $it->tax->name.' ('.$it->tax->rate.'%)' : 'None',
                 $it->unit,
             ];
         }
@@ -62,7 +76,7 @@ class ItemController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -82,11 +96,12 @@ class ItemController extends Controller
         $header = fgetcsv($handle, 0, ',');
         if ($header === false) {
             fclose($handle);
+
             return redirect()->route('items.index')->with('error', 'The CSV file is empty or malformed.');
         }
 
         // Normalize header names
-        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
 
         $imported = 0;
         $skipped = 0;
@@ -104,6 +119,7 @@ class ItemController extends Controller
                 $data = array_combine($header, array_pad($row, count($header), ''));
                 if ($data === false) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -112,6 +128,7 @@ class ItemController extends Controller
 
                 if (empty($name)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -123,7 +140,7 @@ class ItemController extends Controller
                     'unit' => trim($data['unit'] ?? '') ?: 'pcs',
                 ];
 
-                if (!empty($sku)) {
+                if (! empty($sku)) {
                     Item::updateOrCreate(
                         ['sku' => $sku],
                         $attributes

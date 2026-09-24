@@ -14,7 +14,7 @@ class Transaction extends Model
         'type', 'bank_account_id', 'to_bank_account_id', 'customer_id',
         'vendor_id', 'invoice_id', 'bill_id', 'category_id',
         'amount', 'payment_method', 'reference_number', 'transaction_date', 'description',
-        'is_reconciled', 'reconciled_at'
+        'is_reconciled', 'reconciled_at',
     ];
 
     protected $casts = [

@@ -13,19 +13,19 @@ return new class extends Migration
     {
         if (Schema::hasTable('companies')) {
             Schema::table('companies', function (Blueprint $table) {
-                if (!Schema::hasColumn('companies', 'state')) {
+                if (! Schema::hasColumn('companies', 'state')) {
                     $table->string('state')->nullable()->after('city');
                 }
-                if (!Schema::hasColumn('companies', 'financial_year')) {
+                if (! Schema::hasColumn('companies', 'financial_year')) {
                     $table->string('financial_year')->default('January - December')->after('currency_symbol');
                 }
-                if (!Schema::hasColumn('companies', 'financial_year_start')) {
+                if (! Schema::hasColumn('companies', 'financial_year_start')) {
                     $table->string('financial_year_start')->default('01-01')->after('financial_year');
                 }
-                if (!Schema::hasColumn('companies', 'nvidia_api_key')) {
+                if (! Schema::hasColumn('companies', 'nvidia_api_key')) {
                     $table->text('nvidia_api_key')->nullable()->after('tax_number');
                 }
-                if (!Schema::hasColumn('companies', 'nvidia_model')) {
+                if (! Schema::hasColumn('companies', 'nvidia_model')) {
                     $table->string('nvidia_model')->default('meta/llama-3.2-11b-vision-instruct')->after('nvidia_api_key');
                 }
             });

@@ -152,6 +152,7 @@ class QuestionCatalog
                 return $q;
             }
         }
+
         return null;
     }
 
@@ -166,6 +167,7 @@ class QuestionCatalog
         foreach (self::all() as $q) {
             $groups[$q['category']][] = $q;
         }
+
         return $groups;
     }
 
@@ -175,7 +177,7 @@ class QuestionCatalog
      */
     public static function matchIntent(string $question): ?string
     {
-        $q = ' ' . strtolower(trim($question)) . ' ';
+        $q = ' '.strtolower(trim($question)).' ';
         $best = null;
         $bestScore = 0;
 

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Item;
 use App\Models\User;
 use Tests\TestCase;
@@ -29,6 +31,7 @@ class ItemTest extends TestCase
         $response = $this->get('/items/create');
         if ($response->status() === 404 || $response->status() === 405) {
             $this->assertTrue(true);
+
             return;
         }
         $response->assertStatus(200);
@@ -53,9 +56,10 @@ class ItemTest extends TestCase
     {
         $item = Item::factory()->create();
 
-        $response = $this->get('/items/' . $item->id . '/edit');
+        $response = $this->get('/items/'.$item->id.'/edit');
         if ($response->status() === 404 || $response->status() === 405) {
             $this->assertTrue(true);
+
             return;
         }
         $response->assertStatus(200);
@@ -115,8 +119,8 @@ class ItemTest extends TestCase
     public function test_item_used_on_an_invoice_cannot_be_deleted(): void
     {
         $item = Item::factory()->create();
-        $invoice = \App\Models\Invoice::factory()->create();
-        \App\Models\InvoiceItem::create([
+        $invoice = Invoice::factory()->create();
+        InvoiceItem::create([
             'invoice_id' => $invoice->id,
             'item_id' => $item->id,
             'name' => $item->name,

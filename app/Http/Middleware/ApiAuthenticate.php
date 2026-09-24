@@ -14,13 +14,13 @@ class ApiAuthenticate
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $apiToken = ApiToken::findByPlainToken($token);
 
-        if (!$apiToken) {
+        if (! $apiToken) {
             return response()->json(['message' => 'Invalid token.'], 401);
         }
 
@@ -30,7 +30,7 @@ class ApiAuthenticate
 
         $user = $apiToken->user;
 
-        if (!$user || !$user->is_active) {
+        if (! $user || ! $user->is_active) {
             return response()->json(['message' => 'User inactive or not found.'], 401);
         }
 
@@ -39,7 +39,7 @@ class ApiAuthenticate
         Auth::login($user);
 
         // Force JSON response when Accept header is present
-        if (!$request->headers->has('Accept') || !str_contains($request->header('Accept'), 'application/json')) {
+        if (! $request->headers->has('Accept') || ! str_contains($request->header('Accept'), 'application/json')) {
             $request->headers->set('Accept', 'application/json');
         }
 

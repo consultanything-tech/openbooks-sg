@@ -22,7 +22,7 @@ class QuoteFactory extends Factory
         $total = $subtotal + $taxTotal - $discountTotal;
 
         return [
-            'quote_number' => 'QUO-' . fake()->year() . '-' . strtoupper(Str::random(6)),
+            'quote_number' => 'QUO-'.fake()->year().'-'.strtoupper(Str::random(6)),
             'customer_id' => Customer::factory(),
             'quote_date' => now()->subDays(fake()->numberBetween(0, 30)),
             'expiry_date' => now()->addDays(fake()->numberBetween(14, 60)),

@@ -52,7 +52,7 @@ class CustomerPortalController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -186,11 +186,11 @@ class CustomerPortalController extends Controller
             ->orderBy('invoice_date', 'asc')
             ->get();
 
-        $filename = 'statement-' . Str::slug($customer->name) . '-' . date('Y-m-d') . '.csv';
+        $filename = 'statement-'.Str::slug($customer->name).'-'.date('Y-m-d').'.csv';
 
         $headers = [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
         $callback = function () use ($invoices) {

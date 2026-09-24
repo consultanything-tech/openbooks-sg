@@ -44,7 +44,7 @@ class JournalPostingTest extends TestCase
     {
         $invoice = $this->makeInvoice(1000.00, 90.00);
 
-        $entry = JournalEntry::where('reference', $invoice->invoice_number . '-ACCRUAL')->first();
+        $entry = JournalEntry::where('reference', $invoice->invoice_number.'-ACCRUAL')->first();
         $this->assertNotNull($entry, 'Accrual entry was not posted');
         $this->assertTrue($entry->isBalanced());
 
@@ -61,7 +61,7 @@ class JournalPostingTest extends TestCase
     public function test_draft_invoice_does_not_post(): void
     {
         $invoice = $this->makeInvoice(500.00, 45.00, 'draft');
-        $this->assertNull(JournalEntry::where('reference', $invoice->invoice_number . '-ACCRUAL')->first());
+        $this->assertNull(JournalEntry::where('reference', $invoice->invoice_number.'-ACCRUAL')->first());
     }
 
     public function test_payment_posts_cash_entry(): void
@@ -79,10 +79,10 @@ class JournalPostingTest extends TestCase
             'amount' => 500.00,
             'transaction_date' => now()->toDateString(),
             'payment_method' => 'Bank Transfer',
-            'description' => 'Payment received for ' . $invoice->invoice_number,
+            'description' => 'Payment received for '.$invoice->invoice_number,
         ]);
 
-        $entry = JournalEntry::where('reference', 'TXN-' . $txn->id)->first();
+        $entry = JournalEntry::where('reference', 'TXN-'.$txn->id)->first();
         $this->assertNotNull($entry, 'Payment cash leg was not posted by TransactionObserver');
         $this->assertTrue($entry->isBalanced());
 
@@ -103,7 +103,7 @@ class JournalPostingTest extends TestCase
         $invoice->save(); // no material change
         $invoice->refresh()->save();
 
-        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number . '-ACCRUAL')->count());
+        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number.'-ACCRUAL')->count());
     }
 
     public function test_received_bill_posts_accrual(): void
@@ -117,7 +117,7 @@ class JournalPostingTest extends TestCase
             'status' => 'received',
         ]);
 
-        $entry = JournalEntry::where('reference', $bill->bill_number . '-ACCRUAL')->first();
+        $entry = JournalEntry::where('reference', $bill->bill_number.'-ACCRUAL')->first();
         $this->assertNotNull($entry);
         $this->assertTrue($entry->isBalanced());
     }
@@ -148,6 +148,7 @@ class JournalPostingTest extends TestCase
                 ->join('accounts', 'accounts.id', '=', 'journal_entry_lines.account_id')
                 ->where('accounts.type', $type)
                 ->first();
+
             return ['d' => (float) $row->d, 'c' => (float) $row->c];
         };
 

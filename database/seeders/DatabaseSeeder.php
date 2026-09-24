@@ -232,7 +232,7 @@ class DatabaseSeeder extends Seeder
         $item1Id = DB::table('items')->where('sku', 'SW-ERP-ENT')->value('id');
         $item2Id = DB::table('items')->where('sku', 'SRV-ARCH-HR')->value('id');
 
-        if ($custId1 && !DB::table('invoices')->where('invoice_number', 'INV-2026-001')->exists()) {
+        if ($custId1 && ! DB::table('invoices')->where('invoice_number', 'INV-2026-001')->exists()) {
             $invId1 = DB::table('invoices')->insertGetId([
                 'invoice_number' => 'INV-2026-001',
                 'customer_id' => $custId1,
@@ -267,7 +267,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        if ($custId2 && !DB::table('invoices')->where('invoice_number', 'INV-2026-002')->exists()) {
+        if ($custId2 && ! DB::table('invoices')->where('invoice_number', 'INV-2026-002')->exists()) {
             $invId2 = DB::table('invoices')->insertGetId([
                 'invoice_number' => 'INV-2026-002',
                 'customer_id' => $custId2,
@@ -307,7 +307,7 @@ class DatabaseSeeder extends Seeder
         $catHostingId = DB::table('categories')->where('name', 'Server & Cloud Hosting')->value('id');
         $vendorAwsId = DB::table('vendors')->where('name', 'CloudServe Technologies')->value('id');
 
-        if ($bank1Id && !DB::table('transactions')->exists()) {
+        if ($bank1Id && ! DB::table('transactions')->exists()) {
             DB::table('transactions')->insert([
                 [
                     'type' => 'income',
@@ -359,7 +359,7 @@ class DatabaseSeeder extends Seeder
                     'description' => 'Cloud hosting and storage services - September',
                     'created_at' => now()->subDays(3),
                     'updated_at' => now()->subDays(3),
-                ]
+                ],
             ]);
         }
     }

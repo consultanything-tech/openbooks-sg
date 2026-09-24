@@ -16,9 +16,7 @@ use App\Services\Accounting\JournalService;
  */
 class TransactionObserver
 {
-    public function __construct(private JournalService $journal)
-    {
-    }
+    public function __construct(private JournalService $journal) {}
 
     public function created(Transaction $transaction): void
     {

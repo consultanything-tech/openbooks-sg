@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+
 class QboParser
 {
     /**
@@ -90,7 +92,7 @@ class QboParser
         }
 
         try {
-            $date = \Carbon\Carbon::parse($dateRaw)->toDateString();
+            $date = Carbon::parse($dateRaw)->toDateString();
         } catch (\Throwable $e) {
             // Try common QBO date formats
             $date = $this->parseQboDate($dateRaw);
@@ -165,7 +167,7 @@ class QboParser
      */
     private function mapHeaders(array $rawHeaders): array
     {
-        $normalized = array_map(fn($h) => strtolower(trim($h)), $rawHeaders);
+        $normalized = array_map(fn ($h) => strtolower(trim($h)), $rawHeaders);
         $mapped = [];
 
         foreach (self::HEADER_MAP as $field => $aliases) {

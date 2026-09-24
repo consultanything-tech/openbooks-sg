@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CreditNote extends Model
 {
@@ -14,7 +14,7 @@ class CreditNote extends Model
     protected $fillable = [
         'credit_note_number', 'invoice_id', 'customer_id',
         'credit_note_date', 'subtotal', 'tax_total', 'total',
-        'status', 'reason', 'notes'
+        'status', 'reason', 'notes',
     ];
 
     protected $casts = [

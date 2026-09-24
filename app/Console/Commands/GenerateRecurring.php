@@ -30,6 +30,7 @@ class GenerateRecurring extends Command
 
         if ($templates->isEmpty()) {
             $this->info('No recurring templates due for generation.');
+
             return self::SUCCESS;
         }
 
@@ -67,7 +68,7 @@ class GenerateRecurring extends Command
     private function generateInvoice(RecurringTemplate $template, string $today): void
     {
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $dueDate = Carbon::parse($today)->addDays(30)->toDateString();
 
@@ -111,7 +112,7 @@ class GenerateRecurring extends Command
     private function generateBill(RecurringTemplate $template, string $today): void
     {
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'BILL-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $dueDate = Carbon::parse($today)->addDays(30)->toDateString();
 

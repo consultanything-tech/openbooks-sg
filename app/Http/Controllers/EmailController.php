@@ -7,6 +7,7 @@ use App\Models\EmailLog;
 use App\Models\Invoice;
 use App\Models\Notification;
 use App\Models\Quote;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Config;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Mail;
 
 class EmailController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * Configure SMTP on-the-fly from company settings.
@@ -62,7 +63,7 @@ class EmailController extends Controller
 
         Mail::html($htmlBody, function ($message) use ($customer, $subject) {
             $message->to($customer->email, $customer->name)
-                    ->subject($subject);
+                ->subject($subject);
         });
 
         EmailLog::create([
@@ -120,7 +121,7 @@ class EmailController extends Controller
 
         Mail::html($htmlBody, function ($message) use ($customer, $subject) {
             $message->to($customer->email, $customer->name)
-                    ->subject($subject);
+                ->subject($subject);
         });
 
         EmailLog::create([
@@ -173,7 +174,7 @@ class EmailController extends Controller
 
         Mail::html($htmlBody, function ($message) use ($customer, $subject) {
             $message->to($customer->email, $customer->name)
-                    ->subject($subject);
+                ->subject($subject);
         });
 
         EmailLog::create([
@@ -197,7 +198,7 @@ class EmailController extends Controller
      */
     public function smtpSettings()
     {
-        $company = Company::first() ?? new Company();
+        $company = Company::first() ?? new Company;
 
         return view('settings.smtp', compact('company'));
     }
@@ -242,7 +243,7 @@ class EmailController extends Controller
             $subject = "Test Email from {$company->name}";
 
             Mail::html(
-                "<div style=\"font-family: Arial, sans-serif;\"><h2>SMTP Test Successful</h2><p>This is a test email from your OpenBooks SG application. Your SMTP settings are configured correctly.</p><p style=\"color: #666;\">Sent at " . now()->toDateTimeString() . "</p></div>",
+                '<div style="font-family: Arial, sans-serif;"><h2>SMTP Test Successful</h2><p>This is a test email from your OpenBooks SG application. Your SMTP settings are configured correctly.</p><p style="color: #666;">Sent at '.now()->toDateTimeString().'</p></div>',
                 function ($message) use ($userEmail, $subject) {
                     $message->to($userEmail)->subject($subject);
                 }
@@ -250,7 +251,7 @@ class EmailController extends Controller
 
             return response()->json(['success' => true, 'message' => "Test email sent to {$userEmail}."]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'SMTP test failed: ' . $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => 'SMTP test failed: '.$e->getMessage()], 422);
         }
     }
 }

@@ -9,13 +9,11 @@ namespace App\Services\AskOpenBooks;
  */
 class AnswerNarrator
 {
-    public function __construct(protected LlmClient $llm)
-    {
-    }
+    public function __construct(protected LlmClient $llm) {}
 
     public function narrate(array $payload): ?string
     {
-        if (!$this->llm->isConfigured()) {
+        if (! $this->llm->isConfigured()) {
             return null;
         }
 
@@ -30,8 +28,8 @@ class AnswerNarrator
         ];
 
         $system = 'You are OpenBooks, a plain-speaking accounting assistant for Singapore small businesses. '
-            . 'Explain the provided computed answer in 2-3 short sentences a non-accountant understands. '
-            . 'Use ONLY the figures provided — never invent or estimate numbers. No markdown, no bullet points.';
+            .'Explain the provided computed answer in 2-3 short sentences a non-accountant understands. '
+            .'Use ONLY the figures provided — never invent or estimate numbers. No markdown, no bullet points.';
 
         $raw = $this->llm->complete($system, json_encode($facts), 220, 0.2);
         if ($raw === null) {

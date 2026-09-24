@@ -7,22 +7,25 @@ use Illuminate\Console\Command;
 class RestoreDatabase extends Command
 {
     protected $signature = 'backup:restore {file : The backup filename in storage/app/backups/} {--force : Skip confirmation prompt}';
+
     protected $description = 'Restore the database from a compressed backup file';
 
     public function handle(): int
     {
         $filename = basename($this->argument('file')); // prevent path traversal
-        $filepath = storage_path('app/backups/' . $filename);
+        $filepath = storage_path('app/backups/'.$filename);
 
-        if (!file_exists($filepath)) {
+        if (! file_exists($filepath)) {
             $this->error("Backup file not found: {$filename}");
             $this->line('Use <fg=cyan>php artisan backup:list</> to see available backups.');
+
             return Command::FAILURE;
         }
 
-        if (!$this->option('force')) {
-            if (!$this->confirm("This will OVERWRITE the current database with backup [{$filename}]. Continue?")) {
+        if (! $this->option('force')) {
+            if (! $this->confirm("This will OVERWRITE the current database with backup [{$filename}]. Continue?")) {
                 $this->info('Restore cancelled.');
+
                 return Command::SUCCESS;
             }
         }
@@ -47,9 +50,10 @@ class RestoreDatabase extends Command
 
         if ($returnCode !== 0) {
             $this->error('Database restore failed.');
-            if (!empty($output)) {
+            if (! empty($output)) {
                 $this->line(implode("\n", $output));
             }
+
             return Command::FAILURE;
         }
 

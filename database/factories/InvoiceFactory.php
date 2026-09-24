@@ -22,7 +22,7 @@ class InvoiceFactory extends Factory
         $total = $subtotal + $taxTotal - $discountTotal;
 
         return [
-            'invoice_number' => 'INV-' . fake()->year() . '-' . strtoupper(Str::random(6)),
+            'invoice_number' => 'INV-'.fake()->year().'-'.strtoupper(Str::random(6)),
             'customer_id' => Customer::factory(),
             'invoice_date' => now()->subDays(fake()->numberBetween(0, 60)),
             'due_date' => now()->addDays(fake()->numberBetween(14, 30)),
@@ -45,6 +45,7 @@ class InvoiceFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $total = $attributes['total'];
+
             return [
                 'status' => 'paid',
                 'paid_amount' => $total,
@@ -58,6 +59,7 @@ class InvoiceFactory extends Factory
         return $this->state(function (array $attributes) {
             $total = $attributes['total'];
             $paid = round($total * 0.5, 2);
+
             return [
                 'status' => 'partial',
                 'paid_amount' => $paid,

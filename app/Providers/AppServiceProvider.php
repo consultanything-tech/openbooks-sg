@@ -2,13 +2,20 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Http\Request;
+use App\Models\Bill;
 use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\Transaction;
+use App\Observers\BillObserver;
+use App\Observers\InvoiceObserver;
+use App\Observers\TransactionObserver;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Before installation, force session & cache to file driver so web installer never tries to connect to an unconfigured database
-        if (!app()->environment('testing') && !file_exists(storage_path('installed'))) {
+        if (! app()->environment('testing') && ! file_exists(storage_path('installed'))) {
             config([
                 'session.driver' => 'file',
                 'cache.default' => 'file',
@@ -33,10 +40,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Double-entry ledger: keep journal entries in sync with invoices/bills
         // created through ANY path (web, AI assistant, API, recurring, seeders).
-        \App\Models\Invoice::observe(\App\Observers\InvoiceObserver::class);
-        \App\Models\Bill::observe(\App\Observers\BillObserver::class);
+        Invoice::observe(InvoiceObserver::class);
+        Bill::observe(BillObserver::class);
         // Cash legs: every Transaction posts its bank movement to the ledger.
-        \App\Models\Transaction::observe(\App\Observers\TransactionObserver::class);
+        Transaction::observe(TransactionObserver::class);
 
         // API rate limiting: 60 requests per minute per token
         RateLimiter::for('api', function (Request $request) {
@@ -61,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
                 'currency_code' => 'SGD',
                 'currency_symbol' => 'S$',
                 'financial_year' => 'January - December',
-                'financial_year_start' => '01-01'
+                'financial_year_start' => '01-01',
             ]);
 
             $view->with('company', $company);
@@ -75,8 +82,8 @@ class AppServiceProvider extends ServiceProvider
         // Role-based Blade directive: @canEdit ... @endcanEdit
         // Content inside is hidden from VIEWER role users
         Blade::if('canEdit', function () {
-            return \Illuminate\Support\Facades\Auth::check()
-                && strtoupper(\Illuminate\Support\Facades\Auth::user()->role) !== 'VIEWER';
+            return Auth::check()
+                && strtoupper(Auth::user()->role) !== 'VIEWER';
         });
     }
 }

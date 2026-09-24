@@ -5,20 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\CreditNote;
-use App\Models\CreditNoteItem;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Tax;
 use App\Models\Transaction;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CreditNoteController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
+
     public function index(Request $request)
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -49,7 +49,7 @@ class CreditNoteController extends Controller
 
         // Auto generate next credit note number
         $lastId = CreditNote::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'CN-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'CN-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         // Pre-fill from invoice if provided
         $invoice = null;
@@ -78,7 +78,7 @@ class CreditNoteController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
@@ -151,7 +151,7 @@ class CreditNoteController extends Controller
             }
 
             // When issued, reduce customer balance
-            if (!$isDraft) {
+            if (! $isDraft) {
                 $customer = Customer::find($validated['customer_id']);
                 if ($customer) {
                     $customer->decrement('balance', $grandTotal);
@@ -162,6 +162,7 @@ class CreditNoteController extends Controller
         $this->logActivity('created', "Created credit note {$validated['credit_note_number']}", 'CreditNote', null);
 
         $message = $isDraft ? 'Credit note saved as draft.' : 'Credit note issued successfully.';
+
         return redirect()->route('credit_notes.index')->with('success', $message);
     }
 
@@ -220,7 +221,7 @@ class CreditNoteController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
@@ -228,7 +229,7 @@ class CreditNoteController extends Controller
         }
 
         $validated = $request->validate([
-            'credit_note_number' => 'required|string|unique:credit_notes,credit_note_number,' . $creditNote->id,
+            'credit_note_number' => 'required|string|unique:credit_notes,credit_note_number,'.$creditNote->id,
             'customer_id' => 'required|exists:customers,id',
             'invoice_id' => 'nullable|exists:invoices,id',
             'credit_note_date' => 'required|date',
@@ -312,7 +313,7 @@ class CreditNoteController extends Controller
     {
         $creditNote = CreditNote::findOrFail($id);
 
-        if (!in_array($creditNote->status, ['draft', 'cancelled'])) {
+        if (! in_array($creditNote->status, ['draft', 'cancelled'])) {
             return redirect()->back()->with('error', 'Only draft or cancelled credit notes can be deleted.');
         }
 
@@ -382,12 +383,12 @@ class CreditNoteController extends Controller
                 'payment_method' => 'Credit Note',
                 'reference_number' => $creditNote->credit_note_number,
                 'transaction_date' => now()->toDateString(),
-                'description' => 'Credit note ' . $creditNote->credit_note_number . ' applied'
-                    . ($creditNote->invoice ? ' to ' . $creditNote->invoice->invoice_number : ''),
+                'description' => 'Credit note '.$creditNote->credit_note_number.' applied'
+                    .($creditNote->invoice ? ' to '.$creditNote->invoice->invoice_number : ''),
             ]);
         });
 
-        $this->logActivity('applied', "Applied credit note {$creditNote->credit_note_number}" . ($creditNote->invoice ? " to invoice {$creditNote->invoice->invoice_number}" : ''), 'CreditNote', $creditNote->id);
+        $this->logActivity('applied', "Applied credit note {$creditNote->credit_note_number}".($creditNote->invoice ? " to invoice {$creditNote->invoice->invoice_number}" : ''), 'CreditNote', $creditNote->id);
 
         return redirect()->route('credit_notes.show', $creditNote->id)->with('success', 'Credit note applied successfully.');
     }

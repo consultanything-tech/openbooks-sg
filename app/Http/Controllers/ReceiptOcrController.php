@@ -9,14 +9,14 @@ use App\Models\Company;
 use App\Models\ExpenseClaim;
 use App\Models\Vendor;
 use App\Services\ReceiptOcrService;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class ReceiptOcrController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     protected ReceiptOcrService $ocrService;
 
@@ -33,7 +33,7 @@ class ReceiptOcrController extends Controller
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
         $currencySymbol = $company->currency_symbol ?? 'S$';
         $categories = Category::where('type', 'expense')->get();
-        $hasAi = !empty($company->nvidia_api_key) || !empty(config('services.nvidia.api_key'));
+        $hasAi = ! empty($company->nvidia_api_key) || ! empty(config('services.nvidia.api_key'));
 
         return view('expense-claims.scan', compact('company', 'currencySymbol', 'categories', 'hasAi'));
     }
@@ -49,14 +49,14 @@ class ReceiptOcrController extends Controller
 
         $file = $request->file('receipt_image');
         $path = $file->store('receipts', 'local');
-        $fullPath = storage_path('app/' . $path);
+        $fullPath = storage_path('app/'.$path);
 
         $extracted = $this->ocrService->extractFromImage($fullPath);
 
         return response()->json([
             'success' => true,
             'data' => $extracted,
-            'image_url' => asset('storage/' . $path),
+            'image_url' => asset('storage/'.$path),
             'storage_path' => $path,
         ]);
     }
@@ -87,13 +87,13 @@ class ReceiptOcrController extends Controller
     protected function createExpenseClaim(array $data, Request $request)
     {
         $lastId = ExpenseClaim::withTrashed()->max('id') ?? 0;
-        $claimNumber = 'EXP-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $claimNumber = 'EXP-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $claim = ExpenseClaim::create([
             'claim_number' => $claimNumber,
             'user_id' => Auth::id(),
             'claim_date' => $data['receipt_date'],
-            'title' => 'Receipt: ' . $data['merchant'],
+            'title' => 'Receipt: '.$data['merchant'],
             'description' => $data['notes'] ?? 'Created from scanned receipt',
             'total_amount' => $data['amount'],
             'status' => 'submitted',
@@ -110,8 +110,8 @@ class ReceiptOcrController extends Controller
     protected function createBill(array $data, Request $request)
     {
         // Find or create vendor
-        $vendor = Vendor::where('name', 'like', '%' . $data['merchant'] . '%')->first();
-        if (!$vendor) {
+        $vendor = Vendor::where('name', 'like', '%'.$data['merchant'].'%')->first();
+        if (! $vendor) {
             $vendor = Vendor::create([
                 'name' => $data['merchant'],
                 'is_active' => true,
@@ -124,13 +124,13 @@ class ReceiptOcrController extends Controller
         $subtotal = (float) $data['amount'] - $gstAmount;
 
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $billNumber = 'BILL-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $billNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $bill = Bill::create([
             'vendor_id' => $vendor->id,
             'bill_number' => $billNumber,
             'bill_date' => $data['receipt_date'],
-            'due_date' => date('Y-m-d', strtotime($data['receipt_date'] . ' +30 days')),
+            'due_date' => date('Y-m-d', strtotime($data['receipt_date'].' +30 days')),
             'subtotal' => max(0, $subtotal),
             'tax_total' => $gstAmount,
             'discount_total' => 0.00,
@@ -138,12 +138,12 @@ class ReceiptOcrController extends Controller
             'paid_amount' => 0.00,
             'due_amount' => $data['amount'],
             'status' => 'received',
-            'notes' => ($data['notes'] ?? '') . ($data['receipt_path'] ? "\nReceipt: " . $data['receipt_path'] : ''),
+            'notes' => ($data['notes'] ?? '').($data['receipt_path'] ? "\nReceipt: ".$data['receipt_path'] : ''),
         ]);
 
         BillItem::create([
             'bill_id' => $bill->id,
-            'name' => 'Receipt items from ' . $data['merchant'],
+            'name' => 'Receipt items from '.$data['merchant'],
             'quantity' => 1,
             'price' => max(0, $subtotal),
             'tax_rate' => $subtotal > 0 ? round(($gstAmount / $subtotal) * 100, 2) : 0,

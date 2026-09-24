@@ -25,7 +25,7 @@ class OnboardingController extends Controller
                 'description' => 'Add your business name, address, and UEN',
                 'icon' => 'building',
                 'link' => route('settings.index'),
-                'done' => !empty($company->name) && $company->name !== 'OpenBooks SG',
+                'done' => ! empty($company->name) && $company->name !== 'OpenBooks SG',
             ],
             [
                 'label' => 'Add your first customer',
@@ -53,7 +53,7 @@ class OnboardingController extends Controller
                 'description' => 'Add your PayNow UEN or phone for instant payments',
                 'icon' => 'qr-code',
                 'link' => route('settings.index'),
-                'done' => !empty($company->paynow_id),
+                'done' => ! empty($company->paynow_id),
             ],
             [
                 'label' => 'Record a payment',

@@ -19,20 +19,18 @@ class InvoiceObserver
 {
     private const DRAFT_STATES = ['draft', 'cancelled'];
 
-    public function __construct(private JournalService $journal)
-    {
-    }
+    public function __construct(private JournalService $journal) {}
 
     public function created(Invoice $invoice): void
     {
-        if (!in_array($invoice->status, self::DRAFT_STATES, true)) {
+        if (! in_array($invoice->status, self::DRAFT_STATES, true)) {
             $this->journal->postInvoiceAccrual($invoice);
         }
     }
 
     public function updated(Invoice $invoice): void
     {
-        if (!in_array($invoice->status, self::DRAFT_STATES, true)) {
+        if (! in_array($invoice->status, self::DRAFT_STATES, true)) {
             // Idempotent: posts only if the accrual entry does not yet exist
             // (handles the draft -> sent transition).
             $this->journal->postInvoiceAccrual($invoice);

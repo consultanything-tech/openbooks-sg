@@ -5,14 +5,14 @@ namespace Tests\Feature;
 use App\Models\ApiToken;
 use App\Models\Company;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ApiTest extends TestCase
 {
     private User $apiUser;
+
     private ApiToken $apiToken;
+
     private string $plainToken;
 
     protected function setUp(): void
@@ -37,7 +37,7 @@ class ApiTest extends TestCase
 
     private function withApiToken(): static
     {
-        return $this->withHeader('Authorization', 'Bearer ' . $this->plainToken);
+        return $this->withHeader('Authorization', 'Bearer '.$this->plainToken);
     }
 
     public function test_api_requires_token(): void

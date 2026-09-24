@@ -14,11 +14,11 @@ class ReceiptOcrService
     public function extractFromImage(string $imagePath): array
     {
         $company = Company::first();
-        $apiKey = !empty($company?->nvidia_api_key)
+        $apiKey = ! empty($company?->nvidia_api_key)
             ? trim($company->nvidia_api_key)
             : trim(config('services.nvidia.api_key', ''));
 
-        if (!empty($apiKey)) {
+        if (! empty($apiKey)) {
             return $this->extractWithNvidiaNim($imagePath, $apiKey, $company);
         }
 
@@ -30,7 +30,7 @@ class ReceiptOcrService
      */
     protected function extractWithNvidiaNim(string $imagePath, string $apiKey, ?Company $company): array
     {
-        $model = !empty($company?->nvidia_model)
+        $model = ! empty($company?->nvidia_model)
             ? trim($company->nvidia_model)
             : config('services.nvidia.model', 'meta/llama-3.2-11b-vision-instruct');
 
@@ -60,7 +60,7 @@ PROMPT;
 
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
+                'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(60)->post(config('services.nvidia.api_url', 'https://integrate.api.nvidia.com/v1/chat/completions'), [
                 'model' => $model,
@@ -85,9 +85,10 @@ PROMPT;
                 'max_tokens' => 1500,
             ]);
 
-            if (!$response->successful()) {
-                Log::error('Receipt OCR NVIDIA API Error: ' . $response->body());
-                return $this->errorResult('AI vision service returned an error (HTTP ' . $response->status() . ').');
+            if (! $response->successful()) {
+                Log::error('Receipt OCR NVIDIA API Error: '.$response->body());
+
+                return $this->errorResult('AI vision service returned an error (HTTP '.$response->status().').');
             }
 
             $rawContent = $response->json()['choices'][0]['message']['content'] ?? '';
@@ -102,8 +103,9 @@ PROMPT;
 
             $parsed = json_decode($cleanJson, true);
 
-            if (!is_array($parsed)) {
+            if (! is_array($parsed)) {
                 Log::warning('Receipt OCR: failed to parse AI response as JSON', ['raw' => $rawContent]);
+
                 return $this->errorResult('AI returned data in an unexpected format. Please review and enter details manually.');
             }
 
@@ -119,8 +121,9 @@ PROMPT;
             ];
 
         } catch (\Exception $e) {
-            Log::error('Receipt OCR Exception: ' . $e->getMessage());
-            return $this->errorResult('AI service error: ' . $e->getMessage());
+            Log::error('Receipt OCR Exception: '.$e->getMessage());
+
+            return $this->errorResult('AI service error: '.$e->getMessage());
         }
     }
 

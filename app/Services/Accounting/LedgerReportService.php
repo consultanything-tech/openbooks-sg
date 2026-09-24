@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\JournalEntryLine;
 use App\Models\Transaction;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,6 +34,7 @@ class LedgerReportService
         $row = $q->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')->first();
         $d = (float) $row->d;
         $c = (float) $row->c;
+
         return round($normal === 'debit' ? $d - $c : $c - $d, 2);
     }
 
@@ -51,6 +53,7 @@ class LedgerReportService
         $row = $q->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')->first();
         $d = (float) $row->d;
         $c = (float) $row->c;
+
         return round($normal === 'debit' ? $d - $c : $c - $d, 2);
     }
 
@@ -62,6 +65,7 @@ class LedgerReportService
     public function standaloneNetIncome(?string $asOf = null): float
     {
         $t = $this->standaloneTotals(null, $asOf);
+
         return round($t['income'] - $t['expense'], 2);
     }
 
@@ -85,6 +89,7 @@ class LedgerReportService
         }
         $income = (float) (clone $q)->where('type', 'income')->sum('amount');
         $expense = (float) $q->where('type', 'expense')->sum('amount');
+
         return ['income' => round($income, 2), 'expense' => round($expense, 2)];
     }
 
@@ -102,6 +107,7 @@ class LedgerReportService
             ->first();
         $d = (float) $row->d;
         $c = (float) $row->c;
+
         return round($normal === 'debit' ? $d - $c : $c - $d, 2);
     }
 
@@ -114,6 +120,7 @@ class LedgerReportService
     {
         $revenue = round($this->periodTypeBalance('revenue', $start, $end), 2);
         $expense = round($this->periodTypeBalance('expense', $start, $end), 2);
+
         return [
             'netRevenue' => $revenue,
             'netExpense' => $expense,
@@ -245,7 +252,7 @@ class LedgerReportService
     public function generalLedger(string $code, ?string $start = null, ?string $end = null): ?array
     {
         $account = Account::where('code', $code)->first();
-        if (!$account) {
+        if (! $account) {
             return null;
         }
 
@@ -299,7 +306,7 @@ class LedgerReportService
             $totalCredit += $c;
             $running = round($normal === 'debit' ? $running + $d - $c : $running + $c - $d, 2);
             $lines[] = [
-                'date' => \Illuminate\Support\Carbon::parse($r->entry_date)->toDateString(),
+                'date' => Carbon::parse($r->entry_date)->toDateString(),
                 'entry_number' => $r->entry_number,
                 'description' => $r->line_description ?: $r->entry_description,
                 'reference' => $r->reference,

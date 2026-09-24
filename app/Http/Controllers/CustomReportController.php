@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Bill;
-use App\Models\CustomReport;
 use App\Models\Company;
-use App\Models\Invoice;
-use App\Models\TimeEntry;
-use App\Models\Transaction;
+use App\Models\CustomReport;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CustomReportController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * Show the custom report builder page.
@@ -112,11 +110,11 @@ class CustomReportController extends Controller
 
         $results = $this->buildAndRunQuery($validated);
 
-        $filename = 'custom-report-' . date('Y-m-d-His') . '.csv';
+        $filename = 'custom-report-'.date('Y-m-d-His').'.csv';
 
         $output = fopen('php://temp', 'r+');
 
-        if (!empty($results['rows'])) {
+        if (! empty($results['rows'])) {
             // Header row
             fputcsv($output, array_keys($results['rows'][0]), ',', '"', '\\');
             foreach ($results['rows'] as $row) {
@@ -130,7 +128,7 @@ class CustomReportController extends Controller
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -152,8 +150,8 @@ class CustomReportController extends Controller
 
         // Raw queries bypass Eloquent's soft-delete scope, so exclude trashed rows.
         // Qualified by table name because joined party tables may have the column too.
-        if (\Illuminate\Support\Facades\Schema::hasColumn($sourceConfig['table'], 'deleted_at')) {
-            $query->whereNull($sourceConfig['table'] . '.deleted_at');
+        if (Schema::hasColumn($sourceConfig['table'], 'deleted_at')) {
+            $query->whereNull($sourceConfig['table'].'.deleted_at');
         }
 
         // Apply date filters
@@ -166,7 +164,7 @@ class CustomReportController extends Controller
         }
 
         // Apply status filter if available
-        if (!empty($sourceConfig['status_column'])) {
+        if (! empty($sourceConfig['status_column'])) {
             // Include all statuses by default
         }
 
@@ -183,13 +181,13 @@ class CustomReportController extends Controller
             if ($dim === 'date' && $dateColumn) {
                 $selects[] = DB::raw("DATE({$dateColumn}) as report_date");
                 $groups[] = DB::raw("DATE({$dateColumn})");
-            } elseif ($dim === 'customer' && !empty($sourceConfig['party_fk'])) {
+            } elseif ($dim === 'customer' && ! empty($sourceConfig['party_fk'])) {
                 $partyTable = $sourceConfig['party_table'];
                 $partyFk = $sourceConfig['party_fk'];
                 if ($partyTable && $partyFk) {
                     $query->leftJoin($partyTable, "{$sourceConfig['table']}.{$partyFk}", '=', "{$partyTable}.id");
                     $nameExpr = "{$partyTable}.name";
-                    if (!empty($sourceConfig['party2_table']) && !empty($sourceConfig['party2_fk'])) {
+                    if (! empty($sourceConfig['party2_table']) && ! empty($sourceConfig['party2_fk'])) {
                         $p2Table = $sourceConfig['party2_table'];
                         $p2Fk = $sourceConfig['party2_fk'];
                         $query->leftJoin($p2Table, "{$sourceConfig['table']}.{$p2Fk}", '=', "{$p2Table}.id");
@@ -199,12 +197,12 @@ class CustomReportController extends Controller
                     $selects[] = DB::raw("$expr as party_name");
                     $groups[] = DB::raw($expr);
                 }
-            } elseif ($dim === 'category' && !empty($sourceConfig['category_column'])) {
+            } elseif ($dim === 'category' && ! empty($sourceConfig['category_column'])) {
                 $catCol = $sourceConfig['category_column'];
                 $query->leftJoin('categories', "{$sourceConfig['table']}.{$catCol}", '=', 'categories.id');
                 $selects[] = DB::raw("COALESCE(categories.name, 'Uncategorized') as category_name");
                 $groups[] = DB::raw("COALESCE(categories.name, 'Uncategorized')");
-            } elseif ($dim === 'status' && !empty($sourceConfig['status_column'])) {
+            } elseif ($dim === 'status' && ! empty($sourceConfig['status_column'])) {
                 $statusCol = $sourceConfig['status_column'];
                 $selects[] = "{$sourceConfig['table']}.{$statusCol} as status";
                 $groups[] = "{$sourceConfig['table']}.{$statusCol}";
@@ -219,7 +217,7 @@ class CustomReportController extends Controller
             if ($metric === 'sum_total' && $totalColumn) {
                 $selects[] = DB::raw("COALESCE(SUM({$totalColumn}), 0) as sum_total");
             } elseif ($metric === 'count') {
-                $selects[] = DB::raw("COUNT(*) as record_count");
+                $selects[] = DB::raw('COUNT(*) as record_count');
             } elseif ($metric === 'avg_total' && $totalColumn) {
                 $selects[] = DB::raw("COALESCE(AVG({$totalColumn}), 0) as avg_total");
             } elseif ($metric === 'sum_tax' && $taxColumn) {
@@ -233,7 +231,7 @@ class CustomReportController extends Controller
 
         $query->select($selects);
 
-        if (!empty($groups)) {
+        if (! empty($groups)) {
             $query->groupBy($groups);
             $query->orderBy($groups[0]);
         }
@@ -242,9 +240,14 @@ class CustomReportController extends Controller
             $r = (array) $row;
             // MySQL returns DECIMAL aggregates as strings; normalise for the UI
             foreach (['sum_total', 'avg_total', 'sum_tax'] as $key) {
-                if (array_key_exists($key, $r)) $r[$key] = (float) $r[$key];
+                if (array_key_exists($key, $r)) {
+                    $r[$key] = (float) $r[$key];
+                }
             }
-            if (array_key_exists('record_count', $r)) $r['record_count'] = (int) $r['record_count'];
+            if (array_key_exists('record_count', $r)) {
+                $r['record_count'] = (int) $r['record_count'];
+            }
+
             return $r;
         })->toArray();
 

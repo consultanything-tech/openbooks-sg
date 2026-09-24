@@ -36,6 +36,7 @@ trait HandlesBulkActions
             $record = $class::find($id);
             if (! $record) {
                 $skipped++;
+
                 continue;
             }
 
@@ -44,6 +45,7 @@ trait HandlesBulkActions
                 $this->destroy($id);
             } catch (\Throwable $e) {
                 $skipped++;
+
                 continue;
             }
 
@@ -63,11 +65,11 @@ trait HandlesBulkActions
 
         if ($deleted > 0) {
             session(['ob_bulk_undo_ids' => $deletedIds]);
-            $msg = 'Deleted ' . $deleted . ' record' . ($deleted === 1 ? '' : 's');
+            $msg = 'Deleted '.$deleted.' record'.($deleted === 1 ? '' : 's');
             if ($skipped > 0) {
-                $msg .= ' (' . $skipped . ' skipped)';
+                $msg .= ' ('.$skipped.' skipped)';
             }
-            $redirect->with('success', $msg . '.')
+            $redirect->with('success', $msg.'.')
                 ->with('undo_url', route($this->bulkRestoreRouteName()))
                 ->with('undo_label', 'Undo');
         } else {
@@ -100,7 +102,7 @@ trait HandlesBulkActions
         session()->forget(['success', 'error', 'info', 'undo_url', 'undo_label']);
 
         return redirect()->route($this->bulkIndexRoute())
-            ->with('success', 'Restored ' . $restored . ' record' . ($restored === 1 ? '' : 's') . '.');
+            ->with('success', 'Restored '.$restored.' record'.($restored === 1 ? '' : 's').'.');
     }
 
     protected function validatedBulkIds(Request $request): array

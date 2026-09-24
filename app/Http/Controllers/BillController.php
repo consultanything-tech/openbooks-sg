@@ -2,27 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Bill;
 use App\Models\BillItem;
-use App\Models\Vendor;
-use App\Models\BankAccount;
-use App\Models\CurrencyRate;
-use App\Models\Transaction;
 use App\Models\Company;
+use App\Models\CurrencyRate;
 use App\Models\Item;
 use App\Models\Tax;
+use App\Models\Transaction;
+use App\Models\Vendor;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class BillController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Bill::class; }
-    protected function bulkIndexRoute(): string { return 'bills.index'; }
-    protected function bulkRestoreRouteName(): string { return 'bills.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Bill::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'bills.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'bills.bulk_restore';
+    }
+
     public function index(Request $request)
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -49,7 +63,7 @@ class BillController extends Controller
         $taxes = Tax::where('is_active', true)->get();
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
         $currencies = CurrencyRate::where('is_active', true)->orderBy('currency_code')->get();
-        $nextBillNumber = 'BILL-' . date('Y') . '-' . str_pad((Bill::withTrashed()->max('id') ?? 0) + 1, 4, '0', STR_PAD_LEFT);
+        $nextBillNumber = 'BILL-'.date('Y').'-'.str_pad((Bill::withTrashed()->max('id') ?? 0) + 1, 4, '0', STR_PAD_LEFT);
 
         return view('bills.create', compact('vendors', 'items', 'taxes', 'company', 'currencies', 'nextBillNumber'));
     }
@@ -59,7 +73,7 @@ class BillController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['item_name']) && isset($item['name'])) {
+                if (! isset($item['item_name']) && isset($item['name'])) {
                     $items[$idx]['item_name'] = $item['name'];
                 }
             }
@@ -87,7 +101,7 @@ class BillController extends Controller
             foreach ($request->items as $it) {
                 $lineSub = $it['quantity'] * $it['price'];
                 $lineTax = 0;
-                if (!empty($it['tax_rate'])) {
+                if (! empty($it['tax_rate'])) {
                     $lineTax = ($lineSub * $it['tax_rate']) / 100;
                 }
                 $subtotal += $lineSub;
@@ -116,7 +130,7 @@ class BillController extends Controller
 
             foreach ($request->items as $it) {
                 $lineSub = $it['quantity'] * $it['price'];
-                $taxRate = !empty($it['tax_rate']) ? (float)$it['tax_rate'] : 0;
+                $taxRate = ! empty($it['tax_rate']) ? (float) $it['tax_rate'] : 0;
                 $lineTax = ($lineSub * $taxRate) / 100;
 
                 BillItem::create([
@@ -132,7 +146,7 @@ class BillController extends Controller
             }
 
             // Only increase vendor payable balance for non-draft bills
-            if (!$isDraft) {
+            if (! $isDraft) {
                 $vendor = Vendor::find($request->vendor_id);
                 if ($vendor) {
                     $vendor->increment('balance', $totalAmount);
@@ -142,10 +156,12 @@ class BillController extends Controller
             DB::commit();
             $this->logActivity('created', "Created bill {$bill->bill_number}", 'Bill', $bill->id);
             $message = $isDraft ? 'Vendor bill saved as draft.' : 'Vendor bill created successfully.';
+
             return redirect()->route('bills.show', $bill->id)->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()->with('error', 'Error creating bill: ' . $e->getMessage());
+
+            return back()->withInput()->with('error', 'Error creating bill: '.$e->getMessage());
         }
     }
 
@@ -183,7 +199,7 @@ class BillController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['item_name']) && isset($item['name'])) {
+                if (! isset($item['item_name']) && isset($item['name'])) {
                     $items[$idx]['item_name'] = $item['name'];
                 }
             }
@@ -194,7 +210,7 @@ class BillController extends Controller
 
         $request->validate([
             'vendor_id' => 'required|exists:vendors,id',
-            'bill_number' => 'required|unique:bills,bill_number,' . $bill->id,
+            'bill_number' => 'required|unique:bills,bill_number,'.$bill->id,
             'bill_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:bill_date',
             'items' => 'required|array|min:1',
@@ -213,7 +229,7 @@ class BillController extends Controller
             foreach ($request->items as $it) {
                 $lineSub = $it['quantity'] * $it['price'];
                 $lineTax = 0;
-                if (!empty($it['tax_rate'])) {
+                if (! empty($it['tax_rate'])) {
                     $lineTax = ($lineSub * $it['tax_rate']) / 100;
                 }
                 $subtotal += $lineSub;
@@ -224,7 +240,7 @@ class BillController extends Controller
             $totalAmount = max(0, $subtotal + $taxTotal - $discount);
 
             $oldStatus = $bill->status;
-            $wasActive = !in_array($oldStatus, ['draft']);
+            $wasActive = ! in_array($oldStatus, ['draft']);
 
             // Reverse old vendor balance adjustment only if bill was active
             if ($wasActive) {
@@ -267,7 +283,7 @@ class BillController extends Controller
 
             foreach ($request->items as $it) {
                 $lineSub = $it['quantity'] * $it['price'];
-                $taxRate = !empty($it['tax_rate']) ? (float)$it['tax_rate'] : 0;
+                $taxRate = ! empty($it['tax_rate']) ? (float) $it['tax_rate'] : 0;
                 $lineTax = ($lineSub * $taxRate) / 100;
 
                 BillItem::create([
@@ -283,7 +299,7 @@ class BillController extends Controller
             }
 
             // Apply new vendor balance adjustment only if bill is now active
-            $willBeActive = !in_array($bill->status, ['draft']);
+            $willBeActive = ! in_array($bill->status, ['draft']);
             if ($willBeActive) {
                 $vendor = Vendor::find($request->vendor_id);
                 if ($vendor) {
@@ -293,10 +309,12 @@ class BillController extends Controller
 
             DB::commit();
             $this->logActivity('updated', "Updated bill {$bill->bill_number}", 'Bill', $bill->id);
+
             return redirect()->route('bills.show', $bill->id)->with('success', 'Vendor bill updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()->with('error', 'Error updating bill: ' . $e->getMessage());
+
+            return back()->withInput()->with('error', 'Error updating bill: '.$e->getMessage());
         }
     }
 
@@ -329,7 +347,7 @@ class BillController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return redirect()->route('bills.index')->with('error', 'Error deleting bill: ' . $e->getMessage());
+            return redirect()->route('bills.index')->with('error', 'Error deleting bill: '.$e->getMessage());
         }
     }
 
@@ -397,7 +415,7 @@ class BillController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -406,7 +424,7 @@ class BillController extends Controller
         $bill = Bill::findOrFail($id);
 
         $request->validate([
-            'amount' => 'required|numeric|min:0.01|max:' . $bill->due_amount,
+            'amount' => 'required|numeric|min:0.01|max:'.$bill->due_amount,
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'payment_date' => 'required|date',
             'payment_method' => 'required|string',
@@ -438,8 +456,8 @@ class BillController extends Controller
                 'amount' => $amount,
                 'transaction_date' => $request->payment_date,
                 'payment_method' => $request->payment_method,
-                'reference_number' => $request->reference_number ?? ('PAY-' . $bill->bill_number),
-                'description' => 'Payment for Bill ' . $bill->bill_number . ' to ' . ($bill->vendor->name ?? 'Vendor'),
+                'reference_number' => $request->reference_number ?? ('PAY-'.$bill->bill_number),
+                'description' => 'Payment for Bill '.$bill->bill_number.' to '.($bill->vendor->name ?? 'Vendor'),
             ]);
 
             // Deduct vendor payable balance
@@ -449,10 +467,12 @@ class BillController extends Controller
 
             DB::commit();
             $this->logActivity('payment_recorded', "Recorded payment of {$request->amount} for bill {$bill->bill_number}", 'Bill', $bill->id);
+
             return back()->with('success', 'Payment recorded and bank account deducted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Payment recording failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Payment recording failed: '.$e->getMessage());
         }
     }
 }

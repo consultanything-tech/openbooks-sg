@@ -7,12 +7,12 @@ use App\Models\BillItem;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
 use App\Models\Item;
 use App\Models\RecurringTemplate;
-use App\Models\RecurringTemplateItem;
 use App\Models\Tax;
 use App\Models\Vendor;
+use App\Traits\LogsActivity;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 
 class RecurringController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     public function index(Request $request)
     {
@@ -67,13 +67,13 @@ class RecurringController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
             $request->merge(['items' => $items]);
         }
-        if (!$request->has('discount_total') && $request->has('discount')) {
+        if (! $request->has('discount_total') && $request->has('discount')) {
             $request->merge(['discount_total' => $request->input('discount')]);
         }
 
@@ -186,13 +186,13 @@ class RecurringController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
             $request->merge(['items' => $items]);
         }
-        if (!$request->has('discount_total') && $request->has('discount')) {
+        if (! $request->has('discount_total') && $request->has('discount')) {
             $request->merge(['discount_total' => $request->input('discount')]);
         }
 
@@ -302,19 +302,19 @@ class RecurringController extends Controller
     public function toggle($id)
     {
         $template = RecurringTemplate::findOrFail($id);
-        $template->update(['is_active' => !$template->is_active]);
+        $template->update(['is_active' => ! $template->is_active]);
 
         $status = $template->is_active ? 'activated' : 'paused';
         $this->logActivity('toggled', "Recurring template #{$id} {$status}", 'RecurringTemplate', $id);
 
-        return back()->with('success', 'Recurring template ' . $status . '.');
+        return back()->with('success', 'Recurring template '.$status.'.');
     }
 
     public function generateNow($id)
     {
         $template = RecurringTemplate::with('items')->findOrFail($id);
 
-        if (!$template->is_active) {
+        if (! $template->is_active) {
             return back()->with('error', 'Cannot generate from a paused template.');
         }
 
@@ -322,7 +322,7 @@ class RecurringController extends Controller
 
         $this->logActivity('generated', "Manually generated {$template->type} from recurring template #{$id}", 'RecurringTemplate', $id);
 
-        return back()->with('success', ucfirst($template->type) . ' generated successfully.');
+        return back()->with('success', ucfirst($template->type).' generated successfully.');
     }
 
     /**
@@ -352,7 +352,7 @@ class RecurringController extends Controller
     private function generateInvoice(RecurringTemplate $template, string $today): Invoice
     {
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $dueDate = $this->calculateDueDateFromFrequency($today, $template->frequency);
 
@@ -399,7 +399,7 @@ class RecurringController extends Controller
     private function generateBill(RecurringTemplate $template, string $today): Bill
     {
         $lastId = Bill::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'BILL-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'BILL-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         $dueDate = $this->calculateDueDateFromFrequency($today, $template->frequency);
 
@@ -444,7 +444,7 @@ class RecurringController extends Controller
 
     private function calculateNextDueDate($currentDate, string $frequency): string
     {
-        $date = \Carbon\Carbon::parse($currentDate);
+        $date = Carbon::parse($currentDate);
 
         return match ($frequency) {
             'weekly' => $date->addWeek()->toDateString(),
@@ -456,7 +456,7 @@ class RecurringController extends Controller
 
     private function calculateDueDateFromFrequency(string $today, string $frequency): string
     {
-        $date = \Carbon\Carbon::parse($today);
+        $date = Carbon::parse($today);
 
         return match ($frequency) {
             'weekly' => $date->addWeek()->toDateString(),

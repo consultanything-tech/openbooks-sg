@@ -16,6 +16,7 @@ class TwoFactorController extends Controller
     public function setup()
     {
         $user = Auth::user();
+
         return view('settings.two-factor', compact('user'));
     }
 
@@ -55,21 +56,21 @@ class TwoFactorController extends Controller
         $request->validate(['code' => 'required|string|size:6']);
 
         $secret = session('2fa_temp_secret');
-        if (!$secret) {
+        if (! $secret) {
             return back()->with('error', '2FA setup session expired. Please try again.');
         }
 
         $code = $request->input('code');
 
         // Verify TOTP code
-        if (!$this->verifyTotp($secret, $code)) {
+        if (! $this->verifyTotp($secret, $code)) {
             return back()->with('error', 'Invalid verification code. Please try again.');
         }
 
         // Generate recovery codes
         $recoveryCodes = [];
         for ($i = 0; $i < 8; $i++) {
-            $recoveryCodes[] = strtoupper(bin2hex(random_bytes(4))) . '-' . strtoupper(bin2hex(random_bytes(4)));
+            $recoveryCodes[] = strtoupper(bin2hex(random_bytes(4))).'-'.strtoupper(bin2hex(random_bytes(4)));
         }
 
         $user = Auth::user();
@@ -92,7 +93,7 @@ class TwoFactorController extends Controller
 
         $user = Auth::user();
 
-        if (!Hash::check($request->password, $user->password)) {
+        if (! Hash::check($request->password, $user->password)) {
             return back()->with('error', 'Incorrect password.');
         }
 
@@ -109,7 +110,7 @@ class TwoFactorController extends Controller
      */
     public function challenge()
     {
-        if (!session('2fa_user_id')) {
+        if (! session('2fa_user_id')) {
             return redirect()->route('login');
         }
 
@@ -124,12 +125,12 @@ class TwoFactorController extends Controller
         $request->validate(['code' => 'required|string']);
 
         $userId = session('2fa_user_id');
-        if (!$userId) {
+        if (! $userId) {
             return redirect()->route('login')->with('error', 'Session expired. Please login again.');
         }
 
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -141,6 +142,7 @@ class TwoFactorController extends Controller
             session()->forget('2fa_user_id');
             Auth::login($user);
             session()->regenerate();
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -155,6 +157,7 @@ class TwoFactorController extends Controller
             session()->forget('2fa_user_id');
             Auth::login($user);
             session()->regenerate();
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -188,7 +191,9 @@ class TwoFactorController extends Controller
 
         for ($i = 0; $i < strlen($secret); $i++) {
             $pos = strpos($base32Chars, $secret[$i]);
-            if ($pos === false) continue;
+            if ($pos === false) {
+                continue;
+            }
             $binaryString .= str_pad(decbin($pos), 5, '0', STR_PAD_LEFT);
         }
 
@@ -198,7 +203,7 @@ class TwoFactorController extends Controller
         }
 
         // Pack time into 8 bytes
-        $timePacked = pack('N*', 0) . pack('N*', $timeSlice);
+        $timePacked = pack('N*', 0).pack('N*', $timeSlice);
 
         // HMAC-SHA1
         $hash = hash_hmac('sha1', $timePacked, $binaryKey, true);

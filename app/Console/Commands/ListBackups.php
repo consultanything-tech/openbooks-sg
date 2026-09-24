@@ -7,26 +7,29 @@ use Illuminate\Console\Command;
 class ListBackups extends Command
 {
     protected $signature = 'backup:list';
+
     protected $description = 'List all available database backups';
 
     public function handle(): int
     {
         $backupDir = storage_path('app/backups');
 
-        if (!is_dir($backupDir)) {
+        if (! is_dir($backupDir)) {
             $this->warn('No backups directory found. Run "php artisan backup:run" to create one.');
+
             return Command::SUCCESS;
         }
 
-        $files = glob($backupDir . '/openbooks-backup-*.sql.gz');
+        $files = glob($backupDir.'/openbooks-backup-*.sql.gz');
 
         if (empty($files)) {
             $this->warn('No backups found. Run "php artisan backup:run" to create one.');
+
             return Command::SUCCESS;
         }
 
         // Sort newest first
-        usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+        usort($files, fn ($a, $b) => filemtime($b) <=> filemtime($a));
 
         $rows = [];
         foreach ($files as $file) {
@@ -37,7 +40,7 @@ class ListBackups extends Command
             ];
         }
 
-        $this->info(count($files) . ' backup(s) found:');
+        $this->info(count($files).' backup(s) found:');
         $this->table(['Filename', 'Date', 'Size'], $rows);
 
         return Command::SUCCESS;
@@ -51,6 +54,7 @@ class ListBackups extends Command
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }

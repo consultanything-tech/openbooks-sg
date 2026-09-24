@@ -3,7 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\BankAccount;
+use App\Models\Bill;
+use App\Models\Invoice;
 use App\Models\Transaction;
+use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -31,7 +34,7 @@ class PaymentFactory extends Factory
             'payment_method' => fake()->randomElement([
                 'bank_transfer', 'paynow', 'cheque', 'cash', 'credit_card',
             ]),
-            'reference_number' => 'PAY-' . strtoupper(fake()->bothify('########')),
+            'reference_number' => 'PAY-'.strtoupper(fake()->bothify('########')),
             'transaction_date' => now()->subDays(fake()->numberBetween(0, 30)),
             'description' => fake()->optional()->sentence(),
             'is_reconciled' => false,
@@ -45,7 +48,7 @@ class PaymentFactory extends Factory
     public function forInvoice(): static
     {
         return $this->state(fn (array $attributes) => [
-            'invoice_id' => \App\Models\Invoice::factory(),
+            'invoice_id' => Invoice::factory(),
         ]);
     }
 
@@ -56,8 +59,8 @@ class PaymentFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'expense',
-            'bill_id' => \App\Models\Bill::factory(),
-            'vendor_id' => \App\Models\Vendor::factory(),
+            'bill_id' => Bill::factory(),
+            'vendor_id' => Vendor::factory(),
         ]);
     }
 

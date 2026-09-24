@@ -17,20 +17,18 @@ class BillObserver
 {
     private const DRAFT_STATES = ['draft', 'cancelled'];
 
-    public function __construct(private JournalService $journal)
-    {
-    }
+    public function __construct(private JournalService $journal) {}
 
     public function created(Bill $bill): void
     {
-        if (!in_array($bill->status, self::DRAFT_STATES, true)) {
+        if (! in_array($bill->status, self::DRAFT_STATES, true)) {
             $this->journal->postBillAccrual($bill);
         }
     }
 
     public function updated(Bill $bill): void
     {
-        if (!in_array($bill->status, self::DRAFT_STATES, true)) {
+        if (! in_array($bill->status, self::DRAFT_STATES, true)) {
             $this->journal->postBillAccrual($bill);
         }
     }

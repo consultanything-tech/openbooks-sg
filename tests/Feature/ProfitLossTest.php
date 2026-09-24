@@ -16,6 +16,7 @@ use Tests\TestCase;
 class ProfitLossTest extends TestCase
 {
     private const START = '2026-01-01';
+
     private const END = '2026-12-31';
 
     protected function setUp(): void

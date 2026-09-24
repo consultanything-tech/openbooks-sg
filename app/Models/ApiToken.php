@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class ApiToken extends Model
@@ -28,7 +27,7 @@ class ApiToken extends Model
      */
     public static function generateFor(User $user, string $name, ?\DateTimeInterface $expiresAt = null): array
     {
-        $plainToken = 'obk_' . Str::random(48);
+        $plainToken = 'obk_'.Str::random(48);
 
         $token = static::create([
             'user_id' => $user->id,

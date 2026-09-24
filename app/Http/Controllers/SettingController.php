@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
 use App\Models\Category;
+use App\Models\Company;
 use App\Models\CurrencyRate;
 use App\Models\Tax;
 use App\Models\User;
+use App\Traits\LogsActivity;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Schema\Blueprint;
 
 class SettingController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * Ensure any missing columns exist on the companies table automatically.
@@ -27,55 +28,55 @@ class SettingController extends Controller
         try {
             if (Schema::hasTable('companies')) {
                 Schema::table('companies', function (Blueprint $table) {
-                    if (!Schema::hasColumn('companies', 'state')) {
+                    if (! Schema::hasColumn('companies', 'state')) {
                         $table->string('state')->nullable()->after('city');
                     }
-                    if (!Schema::hasColumn('companies', 'financial_year')) {
+                    if (! Schema::hasColumn('companies', 'financial_year')) {
                         $table->string('financial_year')->default('January - December')->after('currency_symbol');
                     }
-                    if (!Schema::hasColumn('companies', 'financial_year_start')) {
+                    if (! Schema::hasColumn('companies', 'financial_year_start')) {
                         $table->string('financial_year_start')->default('01-01')->after('financial_year');
                     }
-                    if (!Schema::hasColumn('companies', 'nvidia_api_key')) {
+                    if (! Schema::hasColumn('companies', 'nvidia_api_key')) {
                         $table->text('nvidia_api_key')->nullable()->after('tax_number');
                     }
-                    if (!Schema::hasColumn('companies', 'nvidia_model')) {
+                    if (! Schema::hasColumn('companies', 'nvidia_model')) {
                         $table->string('nvidia_model')->default('meta/llama-3.2-11b-vision-instruct')->after('nvidia_api_key');
                     }
-                    if (!Schema::hasColumn('companies', 'invoice_prefix')) {
+                    if (! Schema::hasColumn('companies', 'invoice_prefix')) {
                         $table->string('invoice_prefix')->default('INV')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'bill_prefix')) {
+                    if (! Schema::hasColumn('companies', 'bill_prefix')) {
                         $table->string('bill_prefix')->default('BILL')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'credit_note_prefix')) {
+                    if (! Schema::hasColumn('companies', 'credit_note_prefix')) {
                         $table->string('credit_note_prefix')->default('CN')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'default_payment_terms')) {
+                    if (! Schema::hasColumn('companies', 'default_payment_terms')) {
                         $table->text('default_payment_terms')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'default_payment_notes')) {
+                    if (! Schema::hasColumn('companies', 'default_payment_notes')) {
                         $table->text('default_payment_notes')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'invoice_footer')) {
+                    if (! Schema::hasColumn('companies', 'invoice_footer')) {
                         $table->text('invoice_footer')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'accent_color')) {
+                    if (! Schema::hasColumn('companies', 'accent_color')) {
                         $table->string('accent_color')->default('#4f46e5')->nullable();
                     }
-                    if (!Schema::hasColumn('companies', 'show_logo_on_documents')) {
+                    if (! Schema::hasColumn('companies', 'show_logo_on_documents')) {
                         $table->boolean('show_logo_on_documents')->default(true);
                     }
-                    if (!Schema::hasColumn('companies', 'show_tax_number_on_documents')) {
+                    if (! Schema::hasColumn('companies', 'show_tax_number_on_documents')) {
                         $table->boolean('show_tax_number_on_documents')->default(true);
                     }
-                    if (!Schema::hasColumn('companies', 'show_phone_on_documents')) {
+                    if (! Schema::hasColumn('companies', 'show_phone_on_documents')) {
                         $table->boolean('show_phone_on_documents')->default(true);
                     }
                 });
             }
         } catch (\Throwable $e) {
-            Log::warning('Auto-heal companies table columns warning: ' . $e->getMessage());
+            Log::warning('Auto-heal companies table columns warning: '.$e->getMessage());
         }
     }
 
@@ -87,7 +88,7 @@ class SettingController extends Controller
             'currency_code' => 'SGD',
             'currency_symbol' => 'S$',
             'financial_year' => 'January - December',
-            'financial_year_start' => '01-01'
+            'financial_year_start' => '01-01',
         ]);
         $categories = Category::orderBy('type')->orderBy('name')->get();
         $taxes = Tax::orderBy('name')->get();
@@ -115,8 +116,8 @@ class SettingController extends Controller
 
         try {
             $company = Company::first();
-            if (!$company) {
-                $company = new Company();
+            if (! $company) {
+                $company = new Company;
             }
 
             $currencyCode = $request->currency_code ?: ($request->currency ?: 'SGD');
@@ -136,7 +137,7 @@ class SettingController extends Controller
 
             // Filter data by columns that exist in the database table to prevent SQL 1054 crashes
             $columns = Schema::hasTable('companies') ? Schema::getColumnListing('companies') : [];
-            if (!empty($columns)) {
+            if (! empty($columns)) {
                 $filteredData = array_intersect_key($data, array_flip($columns));
             } else {
                 $filteredData = $data;
@@ -172,12 +173,13 @@ class SettingController extends Controller
             }
 
             $company->save();
-            $this->logActivity('updated', "Updated company settings", 'Company', $company->id);
+            $this->logActivity('updated', 'Updated company settings', 'Company', $company->id);
 
             return back()->with('success', 'Company and financial settings updated successfully.');
         } catch (\Throwable $e) {
-            Log::error('Settings update error: ' . $e->getMessage());
-            return back()->with('error', 'Could not save settings: ' . $e->getMessage());
+            Log::error('Settings update error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not save settings: '.$e->getMessage());
         }
     }
 
@@ -203,8 +205,8 @@ class SettingController extends Controller
 
         try {
             $company = Company::first();
-            if (!$company) {
-                $company = new Company();
+            if (! $company) {
+                $company = new Company;
             }
 
             $data = $request->only([
@@ -218,7 +220,7 @@ class SettingController extends Controller
             $data['show_phone_on_documents'] = $request->boolean('show_phone_on_documents', false);
 
             $columns = Schema::hasTable('companies') ? Schema::getColumnListing('companies') : [];
-            if (!empty($columns)) {
+            if (! empty($columns)) {
                 $filteredData = array_intersect_key($data, array_flip($columns));
             } else {
                 $filteredData = $data;
@@ -236,12 +238,13 @@ class SettingController extends Controller
             }
 
             $company->save();
-            $this->logActivity('updated', "Updated branding & document settings", 'Company', $company->id);
+            $this->logActivity('updated', 'Updated branding & document settings', 'Company', $company->id);
 
             return back()->with('success', 'Branding & document settings updated successfully.');
         } catch (\Throwable $e) {
-            Log::error('Branding settings update error: ' . $e->getMessage());
-            return back()->with('error', 'Could not save branding settings: ' . $e->getMessage());
+            Log::error('Branding settings update error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not save branding settings: '.$e->getMessage());
         }
     }
 
@@ -256,8 +259,8 @@ class SettingController extends Controller
 
         try {
             $company = Company::first();
-            if (!$company) {
-                $company = new Company();
+            if (! $company) {
+                $company = new Company;
             }
 
             $columns = Schema::hasTable('companies') ? Schema::getColumnListing('companies') : [];
@@ -271,8 +274,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'AI Assistant & NVIDIA NIM settings updated successfully.');
         } catch (\Throwable $e) {
-            Log::error('AI settings update error: ' . $e->getMessage());
-            return back()->with('error', 'Could not save AI settings: ' . $e->getMessage());
+            Log::error('AI settings update error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not save AI settings: '.$e->getMessage());
         }
     }
 
@@ -287,10 +291,12 @@ class SettingController extends Controller
                 $company->logo_path = null;
                 $company->save();
             }
+
             return back()->with('success', 'Company logo removed successfully.');
         } catch (\Throwable $e) {
-            Log::error('Logo removal error: ' . $e->getMessage());
-            return back()->with('error', 'Could not remove logo: ' . $e->getMessage());
+            Log::error('Logo removal error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not remove logo: '.$e->getMessage());
         }
     }
 
@@ -312,8 +318,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'Category added successfully.');
         } catch (\Throwable $e) {
-            Log::error('Category add error: ' . $e->getMessage());
-            return back()->with('error', 'Could not add category: ' . $e->getMessage());
+            Log::error('Category add error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not add category: '.$e->getMessage());
         }
     }
 
@@ -335,8 +342,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'Tax rate added successfully.');
         } catch (\Throwable $e) {
-            Log::error('Tax rate add error: ' . $e->getMessage());
-            return back()->with('error', 'Could not add tax rate: ' . $e->getMessage());
+            Log::error('Tax rate add error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not add tax rate: '.$e->getMessage());
         }
     }
 
@@ -349,6 +357,7 @@ class SettingController extends Controller
     public function users()
     {
         $users = User::orderByRaw("CASE role WHEN 'ADMIN' THEN 1 WHEN 'ACCOUNTANT' THEN 2 WHEN 'VIEWER' THEN 3 ELSE 4 END")->orderBy('name')->get();
+
         return view('settings.users', compact('users'));
     }
 
@@ -373,8 +382,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'User created successfully.');
         } catch (\Throwable $e) {
-            Log::error('User creation error: ' . $e->getMessage());
-            return back()->with('error', 'Could not create user: ' . $e->getMessage());
+            Log::error('User creation error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not create user: '.$e->getMessage());
         }
     }
 
@@ -390,7 +400,7 @@ class SettingController extends Controller
 
             // Prevent admin from deactivating or demoting themselves
             if ((int) $id === (int) Auth::id()) {
-                if (!$request->is_active) {
+                if (! $request->is_active) {
                     return back()->with('error', 'You cannot deactivate your own account.');
                 }
                 if (strtoupper($request->role) !== 'ADMIN') {
@@ -404,8 +414,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'User updated successfully.');
         } catch (\Throwable $e) {
-            Log::error('User update error: ' . $e->getMessage());
-            return back()->with('error', 'Could not update user: ' . $e->getMessage());
+            Log::error('User update error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not update user: '.$e->getMessage());
         }
     }
 
@@ -421,8 +432,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'User deleted successfully.');
         } catch (\Throwable $e) {
-            Log::error('User deletion error: ' . $e->getMessage());
-            return back()->with('error', 'Could not delete user: ' . $e->getMessage());
+            Log::error('User deletion error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not delete user: '.$e->getMessage());
         }
     }
 
@@ -463,8 +475,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'Currency added successfully.');
         } catch (\Throwable $e) {
-            Log::error('Currency add error: ' . $e->getMessage());
-            return back()->with('error', 'Could not add currency: ' . $e->getMessage());
+            Log::error('Currency add error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not add currency: '.$e->getMessage());
         }
     }
 
@@ -495,8 +508,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'Currency rate updated successfully.');
         } catch (\Throwable $e) {
-            Log::error('Currency update error: ' . $e->getMessage());
-            return back()->with('error', 'Could not update currency: ' . $e->getMessage());
+            Log::error('Currency update error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not update currency: '.$e->getMessage());
         }
     }
 
@@ -511,9 +525,9 @@ class SettingController extends Controller
 
             return back()->with('success', 'Currency removed successfully.');
         } catch (\Throwable $e) {
-            Log::error('Currency deletion error: ' . $e->getMessage());
-            return back()->with('error', 'Could not delete currency: ' . $e->getMessage());
+            Log::error('Currency deletion error: '.$e->getMessage());
+
+            return back()->with('error', 'Could not delete currency: '.$e->getMessage());
         }
     }
 }
-

@@ -6,10 +6,11 @@ use App\Models\Company;
 use App\Models\CurrencyRate;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
 use App\Models\Item;
 use App\Models\Quote;
 use App\Models\Tax;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -18,12 +19,23 @@ use Illuminate\Support\Str;
 
 class QuoteController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Quote::class; }
-    protected function bulkIndexRoute(): string { return 'quotes.index'; }
-    protected function bulkRestoreRouteName(): string { return 'quotes.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Quote::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'quotes.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'quotes.bulk_restore';
+    }
 
     public function index(Request $request)
     {
@@ -53,7 +65,7 @@ class QuoteController extends Controller
         $currencies = CurrencyRate::where('is_active', true)->orderBy('currency_code')->get();
 
         $lastId = Quote::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'QUO-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'QUO-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         return view('quotes.create', compact('customers', 'items', 'taxes', 'company', 'nextNumber', 'currencies'));
     }
@@ -63,7 +75,7 @@ class QuoteController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
@@ -170,7 +182,7 @@ class QuoteController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
@@ -178,7 +190,7 @@ class QuoteController extends Controller
         }
 
         $validated = $request->validate([
-            'quote_number' => 'required|string|unique:quotes,quote_number,' . $quote->id,
+            'quote_number' => 'required|string|unique:quotes,quote_number,'.$quote->id,
             'customer_id' => 'required|exists:customers,id',
             'quote_date' => 'required|date',
             'expiry_date' => 'required|date|after_or_equal:quote_date',
@@ -287,6 +299,7 @@ class QuoteController extends Controller
         $quote = Quote::findOrFail($id);
         $quote->update(['status' => 'sent']);
         $this->logActivity('marked_sent', "Marked quote {$quote->quote_number} as sent", 'Quote', $quote->id);
+
         return back()->with('success', 'Quotation marked as sent.');
     }
 
@@ -295,6 +308,7 @@ class QuoteController extends Controller
         $quote = Quote::findOrFail($id);
         $quote->update(['status' => 'accepted']);
         $this->logActivity('accepted', "Quote {$quote->quote_number} accepted by customer", 'Quote', $quote->id);
+
         return back()->with('success', 'Quotation marked as accepted.');
     }
 
@@ -303,6 +317,7 @@ class QuoteController extends Controller
         $quote = Quote::findOrFail($id);
         $quote->update(['status' => 'declined']);
         $this->logActivity('declined', "Quote {$quote->quote_number} declined", 'Quote', $quote->id);
+
         return back()->with('success', 'Quotation marked as declined.');
     }
 
@@ -316,7 +331,7 @@ class QuoteController extends Controller
 
         $invoice = DB::transaction(function () use ($quote) {
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $nextNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
             $invoice = Invoice::create([
                 'invoice_number' => $nextNumber,

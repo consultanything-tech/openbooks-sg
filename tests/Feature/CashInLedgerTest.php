@@ -9,6 +9,7 @@ use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
 use App\Models\Transaction;
 use App\Services\Accounting\JournalService;
+use App\Services\Accounting\LedgerReportService;
 use Tests\TestCase;
 
 /**
@@ -67,8 +68,8 @@ class CashInLedgerTest extends TestCase
         $this->assertTrue($entry->isBalanced());
 
         $code = $bank->fresh()->ledgerAccount->code;
-        $this->assertEqualsWithDelta(5000.00, $this->debit('BANK-' . $bank->id . '-OPEN', $code), 0.01);
-        $this->assertEqualsWithDelta(5000.00, $this->credit('BANK-' . $bank->id . '-OPEN', '3200'), 0.01);
+        $this->assertEqualsWithDelta(5000.00, $this->debit('BANK-'.$bank->id.'-OPEN', $code), 0.01);
+        $this->assertEqualsWithDelta(5000.00, $this->credit('BANK-'.$bank->id.'-OPEN', '3200'), 0.01);
     }
 
     public function test_transfer_posts_debit_destination_credit_source(): void
@@ -98,13 +99,13 @@ class CashInLedgerTest extends TestCase
             'description' => 'Office supplies',
         ]);
 
-        $entry = JournalEntry::where('reference', 'TXN-' . $txn->id)->first();
+        $entry = JournalEntry::where('reference', 'TXN-'.$txn->id)->first();
         $this->assertNotNull($entry, 'TransactionObserver did not post the cash leg');
         $this->assertTrue($entry->isBalanced());
 
         $code = $bank->fresh()->ledgerAccount->code;
-        $this->assertEqualsWithDelta(250.00, $this->debit('TXN-' . $txn->id, '5100'), 0.01);
-        $this->assertEqualsWithDelta(250.00, $this->credit('TXN-' . $txn->id, $code), 0.01);
+        $this->assertEqualsWithDelta(250.00, $this->debit('TXN-'.$txn->id, '5100'), 0.01);
+        $this->assertEqualsWithDelta(250.00, $this->credit('TXN-'.$txn->id, $code), 0.01);
     }
 
     public function test_transfer_and_opening_transactions_do_not_double_post(): void
@@ -117,7 +118,7 @@ class CashInLedgerTest extends TestCase
             'description' => 'Opening',
         ]);
 
-        $this->assertNull(JournalEntry::where('reference', 'TXN-' . $txn->id)->first());
+        $this->assertNull(JournalEntry::where('reference', 'TXN-'.$txn->id)->first());
     }
 
     public function test_ledger_cash_ties_to_bank_account_balances(): void
@@ -127,7 +128,7 @@ class CashInLedgerTest extends TestCase
 
         app(JournalService::class)->backfillCash();
 
-        $bs = app(\App\Services\Accounting\LedgerReportService::class)->balanceSheet();
+        $bs = app(LedgerReportService::class)->balanceSheet();
         $expected = round(BankAccount::sum('current_balance'), 2);
 
         $this->assertEqualsWithDelta($expected, $bs['totalCashBank'], 0.01);
@@ -146,14 +147,14 @@ class CashInLedgerTest extends TestCase
 
         $svc = app(JournalService::class);
         $svc->backfillCash();
-        $firstCash = app(\App\Services\Accounting\LedgerReportService::class)->balanceSheet()['totalCashBank'];
+        $firstCash = app(LedgerReportService::class)->balanceSheet()['totalCashBank'];
         $count = JournalEntry::where('is_posted', true)->count();
 
         $svc->backfillCash();
-        $secondCash = app(\App\Services\Accounting\LedgerReportService::class)->balanceSheet()['totalCashBank'];
+        $secondCash = app(LedgerReportService::class)->balanceSheet()['totalCashBank'];
 
         $this->assertEqualsWithDelta($firstCash, $secondCash, 0.01);
         $this->assertSame($count, JournalEntry::where('is_posted', true)->count());
-        $this->assertSame(1, JournalEntry::where('reference', 'BANK-' . $bank->id . '-OPEN')->count());
+        $this->assertSame(1, JournalEntry::where('reference', 'BANK-'.$bank->id.'-OPEN')->count());
     }
 }

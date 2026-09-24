@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Bill;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Quote;
+use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -182,14 +185,14 @@ class AiChatTest extends TestCase
             'model_id' => $invoice->id,
         ]);
 
-        $log = \App\Models\ActivityLog::where('model_type', 'Invoice')->first();
+        $log = ActivityLog::where('model_type', 'Invoice')->first();
         $this->assertSame('ai_assistant', $log->properties['source'] ?? null);
         $this->assertStringContainsString('via AI Assistant', $log->description);
     }
 
     public function test_viewer_role_cannot_write_via_chat(): void
     {
-        $viewer = \App\Models\User::factory()->create(['role' => 'VIEWER', 'is_active' => true]);
+        $viewer = User::factory()->create(['role' => 'VIEWER', 'is_active' => true]);
         $this->actingAs($viewer);
 
         $this->fakeAiReply('create_invoice', [
@@ -223,7 +226,7 @@ class AiChatTest extends TestCase
         $response->assertJsonPath('action', 'create_quote');
         $response->assertJsonPath('action_card.type', 'quote');
 
-        $this->assertSame(1, \App\Models\Quote::count());
+        $this->assertSame(1, Quote::count());
         $this->assertSame(0, Invoice::count());
         // Quotes are non-binding: no receivable may be posted.
         $this->assertSame(0.0, (float) $customer->fresh()->balance);
@@ -248,7 +251,7 @@ class AiChatTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('action', 'create_quote');
 
-        $quote = \App\Models\Quote::first();
+        $quote = Quote::first();
         $this->assertNotNull($quote);
         $this->assertStringStartsWith('QUO-', $quote->quote_number);
         $this->assertSame('sent', $quote->status);

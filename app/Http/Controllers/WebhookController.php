@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Webhook;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 
 class WebhookController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * List all webhooks (admin only).
@@ -63,7 +64,7 @@ class WebhookController extends Controller
     public function update(Request $request, $id)
     {
         $webhook = Webhook::findOrFail($id);
-        $webhook->update(['is_active' => !$webhook->is_active]);
+        $webhook->update(['is_active' => ! $webhook->is_active]);
 
         $status = $webhook->is_active ? 'activated' : 'deactivated';
 

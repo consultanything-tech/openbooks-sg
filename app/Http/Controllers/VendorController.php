@@ -4,18 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Vendor;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 class VendorController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Vendor::class; }
-    protected function bulkIndexRoute(): string { return 'vendors.index'; }
-    protected function bulkRestoreRouteName(): string { return 'vendors.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Vendor::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'vendors.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'vendors.bulk_restore';
+    }
+
     public function index()
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -83,7 +97,7 @@ class VendorController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 

@@ -61,7 +61,7 @@ class InstallController extends Controller
             ['code' => '+63', 'name' => 'Philippines (+63)', 'iso' => 'PH', 'flag' => '🇵🇭'],
             ['code' => '+92', 'name' => 'Pakistan (+92)', 'iso' => 'PK', 'flag' => '🇵🇰'],
             ['code' => '+20', 'name' => 'Egypt (+20)', 'iso' => 'EG', 'flag' => '🇪🇬'],
-            ['code' => '+90', 'name' => 'Turkey (+90)', 'iso' => 'TR', 'flag' => '🇹🇷']
+            ['code' => '+90', 'name' => 'Turkey (+90)', 'iso' => 'TR', 'flag' => '🇹🇷'],
         ];
 
         // WhatsApp support details (placeholders — configure as needed)
@@ -87,7 +87,7 @@ class InstallController extends Controller
             'city' => 'nullable|string|max:100',
         ]);
 
-        $fullPhone = trim($validated['phone_country_code']) . ' ' . preg_replace('/[^0-9]/', '', $validated['phone_number']);
+        $fullPhone = trim($validated['phone_country_code']).' '.preg_replace('/[^0-9]/', '', $validated['phone_number']);
 
         // Store validated customer information into session
         session([
@@ -100,13 +100,13 @@ class InstallController extends Controller
                 'city' => $validated['city'] ?? null,
                 'purchase_code' => 'opensource',
                 'product_title' => 'OpenBooks SG',
-            ]
+            ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Details saved successfully.',
-            'customer' => session('installer_customer')
+            'customer' => session('installer_customer'),
         ]);
     }
 
@@ -146,7 +146,7 @@ class InstallController extends Controller
                 $dsn = "mysql:host={$tryHost};port={$port};charset=utf8mb4";
                 $pdo = new PDO($dsn, $username, $password, [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_TIMEOUT => 4
+                    PDO::ATTR_TIMEOUT => 4,
                 ]);
                 $connected = true;
                 $workingHost = $tryHost;
@@ -156,14 +156,14 @@ class InstallController extends Controller
             }
         }
 
-        if (!$connected && ($host === 'localhost' || $host === '127.0.0.1')) {
+        if (! $connected && ($host === 'localhost' || $host === '127.0.0.1')) {
             $xamppSocket = '/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock';
             if (file_exists($xamppSocket)) {
                 try {
                     $dsn = "mysql:unix_socket={$xamppSocket};charset=utf8mb4";
                     $pdo = new PDO($dsn, $username, $password, [
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_TIMEOUT => 4
+                        PDO::ATTR_TIMEOUT => 4,
                     ]);
                     $connected = true;
                 } catch (Exception $e) {
@@ -172,31 +172,31 @@ class InstallController extends Controller
             }
         }
 
-        if (!$connected || !$pdo) {
+        if (! $connected || ! $pdo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Database connection failed: ' . implode('; ', array_unique($errors))
+                'message' => 'Database connection failed: '.implode('; ', array_unique($errors)),
             ], 422);
         }
 
         try {
             // Check if database exists or can be created
-            $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = " . $pdo->quote($dbname));
+            $stmt = $pdo->query('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '.$pdo->quote($dbname));
             $dbExists = (bool) $stmt->fetchColumn();
 
-            $note = ($workingHost !== $host) ? " (connected via {$workingHost})" : "";
+            $note = ($workingHost !== $host) ? " (connected via {$workingHost})" : '';
 
             return response()->json([
                 'success' => true,
                 'working_host' => $workingHost,
                 'message' => $dbExists
                     ? "Connection successful! Database '{$dbname}' found and ready{$note}."
-                    : "Connection successful! Database '{$dbname}' will be created automatically{$note}."
+                    : "Connection successful! Database '{$dbname}' will be created automatically{$note}.",
             ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Database query failed: ' . $e->getMessage()
+                'message' => 'Database query failed: '.$e->getMessage(),
             ], 422);
         }
     }
@@ -220,10 +220,10 @@ class InstallController extends Controller
         ]);
 
         $customer = session('installer_customer');
-        if (!$customer) {
+        if (! $customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Session expired. Please restart the installer wizard.'
+                'message' => 'Session expired. Please restart the installer wizard.',
             ], 400);
         }
 
@@ -234,13 +234,13 @@ class InstallController extends Controller
         $password = $validated['db_pass'] ?? '';
         $appUrl = $validated['app_url'] ?? url('/');
 
-        $companyName = !empty($validated['company_name']) ? $validated['company_name'] : (($customer['name'] ?? 'OpenBooks') . ' Enterprise');
-        $companyEmail = !empty($validated['company_email']) ? $validated['company_email'] : ($customer['email'] ?? 'admin@openbooks.sg');
-        $adminEmail = !empty($validated['admin_email']) ? $validated['admin_email'] : ($customer['email'] ?? 'admin@openbooks.sg');
+        $companyName = ! empty($validated['company_name']) ? $validated['company_name'] : (($customer['name'] ?? 'OpenBooks').' Enterprise');
+        $companyEmail = ! empty($validated['company_email']) ? $validated['company_email'] : ($customer['email'] ?? 'admin@openbooks.sg');
+        $adminEmail = ! empty($validated['admin_email']) ? $validated['admin_email'] : ($customer['email'] ?? 'admin@openbooks.sg');
         if (empty($validated['admin_password'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'An admin password is required. Please set a strong password.'
+                'message' => 'An admin password is required. Please set a strong password.',
             ], 422);
         }
         $adminPassword = $validated['admin_password'];
@@ -260,20 +260,22 @@ class InstallController extends Controller
                 $pdo = new PDO($dsn, $username, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $workingHost = $tryHost;
                 break;
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
 
-        if (!$pdo && file_exists('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock')) {
+        if (! $pdo && file_exists('/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock')) {
             try {
-                $dsn = "mysql:unix_socket=/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock;charset=utf8mb4";
+                $dsn = 'mysql:unix_socket=/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock;charset=utf8mb4';
                 $pdo = new PDO($dsn, $username, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
 
-        if (!$pdo) {
+        if (! $pdo) {
             return response()->json([
                 'success' => false,
-                'message' => 'Could not establish connection to MySQL database server.'
+                'message' => 'Could not establish connection to MySQL database server.',
             ], 422);
         }
 
@@ -368,13 +370,14 @@ class InstallController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'OpenBooks SG has been installed successfully!',
-                'redirect' => $redirectUrl
+                'redirect' => $redirectUrl,
             ]);
         } catch (Exception $e) {
-            Log::error('Installation process error: ' . $e->getMessage());
+            Log::error('Installation process error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Installation error: ' . $e->getMessage()
+                'message' => 'Installation error: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -384,7 +387,7 @@ class InstallController extends Controller
      */
     public function complete()
     {
-        if (!file_exists(storage_path('installed'))) {
+        if (! file_exists(storage_path('installed'))) {
             return redirect('/install');
         }
 
@@ -403,7 +406,7 @@ class InstallController extends Controller
     private function updateEnvFile(array $data): void
     {
         $envPath = base_path('.env');
-        if (!file_exists($envPath)) {
+        if (! file_exists($envPath)) {
             if (file_exists(base_path('.env.example'))) {
                 copy(base_path('.env.example'), $envPath);
             } else {
@@ -415,7 +418,7 @@ class InstallController extends Controller
 
         foreach ($data as $key => $value) {
             if (str_contains($value, ' ') || str_contains($value, '#') || empty($value)) {
-                $formattedValue = '"' . addcslashes($value, '"') . '"';
+                $formattedValue = '"'.addcslashes($value, '"').'"';
             } else {
                 $formattedValue = $value;
             }
@@ -455,7 +458,7 @@ class InstallController extends Controller
             'cURL Extension' => extension_loaded('curl'),
         ];
 
-        $passed = !in_array(false, $requirements, true);
+        $passed = ! in_array(false, $requirements, true);
 
         return [
             'list' => $requirements,
@@ -476,7 +479,7 @@ class InstallController extends Controller
             '.env (writable)' => is_writable(base_path('.env')) || is_writable(base_path()),
         ];
 
-        $passed = !in_array(false, $directories, true);
+        $passed = ! in_array(false, $directories, true);
 
         return [
             'list' => $directories,

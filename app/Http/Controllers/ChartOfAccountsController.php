@@ -6,13 +6,14 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\JournalEntry;
 use App\Models\JournalEntryLine;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 
 class ChartOfAccountsController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * List all accounts grouped by type.
@@ -61,8 +62,8 @@ class ChartOfAccountsController extends Controller
         ];
 
         // Allow code and type changes only for non-system accounts
-        if (!$account->is_system) {
-            $rules['code'] = 'required|string|max:20|unique:accounts,code,' . $account->id;
+        if (! $account->is_system) {
+            $rules['code'] = 'required|string|max:20|unique:accounts,code,'.$account->id;
             $rules['type'] = 'required|in:asset,liability,equity,revenue,expense';
         }
 
@@ -154,7 +155,7 @@ class ChartOfAccountsController extends Controller
         if (round($totalDebits, 2) !== round($totalCredits, 2)) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Total debits (' . number_format($totalDebits, 2) . ') must equal total credits (' . number_format($totalCredits, 2) . ').');
+                ->with('error', 'Total debits ('.number_format($totalDebits, 2).') must equal total credits ('.number_format($totalCredits, 2).').');
         }
 
         $journalEntry = DB::transaction(function () use ($validated) {
@@ -171,7 +172,7 @@ class ChartOfAccountsController extends Controller
                 $nextSeq = 1;
             }
 
-            $entryNumber = 'JE-' . $year . '-' . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            $entryNumber = 'JE-'.$year.'-'.str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
 
             $entry = JournalEntry::create([
                 'entry_number' => $entryNumber,
@@ -212,6 +213,7 @@ class ChartOfAccountsController extends Controller
             $lines = JournalEntryLine::where('account_id', $account->id);
             $account->total_debit = $lines->sum('debit');
             $account->total_credit = $lines->sum('credit');
+
             return $account;
         })->filter(function ($account) {
             return $account->total_debit > 0 || $account->total_credit > 0;
@@ -266,6 +268,6 @@ class ChartOfAccountsController extends Controller
 
         $this->logActivity('seeded', 'Seeded default Singapore Chart of Accounts', 'Account', null);
 
-        return redirect()->back()->with('success', 'Default Singapore Chart of Accounts has been created with ' . count($defaults) . ' accounts.');
+        return redirect()->back()->with('success', 'Default Singapore Chart of Accounts has been created with '.count($defaults).' accounts.');
     }
 }

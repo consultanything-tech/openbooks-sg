@@ -8,11 +8,12 @@ use App\Models\Company;
 use App\Models\CurrencyRate;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
 use App\Models\Item;
 use App\Models\StockMovement;
 use App\Models\Tax;
 use App\Models\Transaction;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -21,12 +22,24 @@ use Illuminate\Support\Str;
 
 class InvoiceController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Invoice::class; }
-    protected function bulkIndexRoute(): string { return 'invoices.index'; }
-    protected function bulkRestoreRouteName(): string { return 'invoices.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Invoice::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'invoices.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'invoices.bulk_restore';
+    }
+
     public function index(Request $request)
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -57,7 +70,7 @@ class InvoiceController extends Controller
 
         // Auto generate next invoice number
         $lastId = Invoice::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
         $nextInvoiceNumber = $nextNumber;
 
         return view('invoices.create', compact('customers', 'items', 'taxes', 'company', 'nextNumber', 'nextInvoiceNumber', 'currencies'));
@@ -68,13 +81,13 @@ class InvoiceController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
             $request->merge(['items' => $items]);
         }
-        if (!$request->has('discount_total') && $request->has('discount')) {
+        if (! $request->has('discount_total') && $request->has('discount')) {
             $request->merge(['discount_total' => $request->input('discount')]);
         }
 
@@ -153,7 +166,7 @@ class InvoiceController extends Controller
 
             // Auto-deduct stock for inventory-tracked items
             foreach ($itemRows as $itemData) {
-                if (!empty($itemData['item_id'])) {
+                if (! empty($itemData['item_id'])) {
                     $inventoryItem = Item::find($itemData['item_id']);
                     if ($inventoryItem && $inventoryItem->track_inventory) {
                         $inventoryItem->decrement('stock_quantity', $itemData['quantity']);
@@ -164,7 +177,7 @@ class InvoiceController extends Controller
                             'quantity' => -$itemData['quantity'],
                             'reference_type' => 'Invoice',
                             'reference_id' => $invoice->id,
-                            'notes' => 'Auto-deducted via invoice ' . $validated['invoice_number'],
+                            'notes' => 'Auto-deducted via invoice '.$validated['invoice_number'],
                             'user_id' => auth()->id(),
                         ]);
                     }
@@ -172,7 +185,7 @@ class InvoiceController extends Controller
             }
 
             // Only update customer balance for non-draft invoices
-            if (!$isDraft) {
+            if (! $isDraft) {
                 $customer = Customer::find($validated['customer_id']);
                 if ($customer) {
                     $customer->increment('balance', $grandTotal);
@@ -183,6 +196,7 @@ class InvoiceController extends Controller
         $this->logActivity('created', "Created invoice {$validated['invoice_number']}", 'Invoice', null);
 
         $message = $isDraft ? 'Invoice saved as draft.' : 'Invoice generated successfully.';
+
         return redirect()->route('invoices.index')->with('success', $message);
     }
 
@@ -223,7 +237,7 @@ class InvoiceController extends Controller
     {
         $invoice = $id instanceof Invoice ? $id : Invoice::findOrFail($id);
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01|max:' . $invoice->due_amount,
+            'amount' => 'required|numeric|min:0.01|max:'.$invoice->due_amount,
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'payment_date' => 'required|date',
             'payment_method' => 'required|string',
@@ -268,15 +282,15 @@ class InvoiceController extends Controller
                 'category_id' => $incomeCatId,
                 'amount' => $amount,
                 'payment_method' => $validated['payment_method'],
-                'reference_number' => $validated['reference_number'] ?? ('REC-' . strtoupper(Str::random(8))),
+                'reference_number' => $validated['reference_number'] ?? ('REC-'.strtoupper(Str::random(8))),
                 'transaction_date' => $validated['payment_date'],
-                'description' => $validated['description'] ?? ("Payment received for " . $invoice->invoice_number),
+                'description' => $validated['description'] ?? ('Payment received for '.$invoice->invoice_number),
             ]);
         });
 
         $this->logActivity('payment_recorded', "Recorded payment of {$validated['amount']} for invoice {$invoice->invoice_number}", 'Invoice', $invoice->id);
 
-        return back()->with('success', 'Payment of ' . $validated['amount'] . ' recorded successfully.');
+        return back()->with('success', 'Payment of '.$validated['amount'].' recorded successfully.');
     }
 
     public function edit($id)
@@ -297,20 +311,20 @@ class InvoiceController extends Controller
         $items = $request->input('items', []);
         if (is_array($items)) {
             foreach ($items as $idx => $item) {
-                if (!isset($item['name']) && isset($item['item_name'])) {
+                if (! isset($item['name']) && isset($item['item_name'])) {
                     $items[$idx]['name'] = $item['item_name'];
                 }
             }
             $request->merge(['items' => $items]);
         }
-        if (!$request->has('discount_total') && $request->has('discount')) {
+        if (! $request->has('discount_total') && $request->has('discount')) {
             $request->merge(['discount_total' => $request->input('discount')]);
         }
 
         $invoice = Invoice::findOrFail($id);
 
         $validated = $request->validate([
-            'invoice_number' => 'required|string|unique:invoices,invoice_number,' . $invoice->id,
+            'invoice_number' => 'required|string|unique:invoices,invoice_number,'.$invoice->id,
             'customer_id' => 'required|exists:customers,id',
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
@@ -363,8 +377,8 @@ class InvoiceController extends Controller
             $newStatus = $requestedStatus ?: $oldStatus;
 
             // Determine if balance adjustments are needed
-            $wasActive = !in_array($oldStatus, ['draft']);
-            $willBeActive = !in_array($newStatus, ['draft']);
+            $wasActive = ! in_array($oldStatus, ['draft']);
+            $willBeActive = ! in_array($newStatus, ['draft']);
 
             // Reverse old customer balance if invoice was previously active
             if ($wasActive) {
@@ -527,7 +541,7 @@ class InvoiceController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -538,7 +552,7 @@ class InvoiceController extends Controller
         $newInvoice = DB::transaction(function () use ($invoice) {
             // Generate next invoice number
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $nextNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $nextNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
             $newInvoice = Invoice::create([
                 'invoice_number' => $nextNumber,

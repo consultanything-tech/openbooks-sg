@@ -14,7 +14,7 @@ class BankAccount extends Model
     protected $fillable = [
         'name', 'type', 'account_number', 'bank_name',
         'ifsc_code', 'branch_name', 'account_type', 'upi_id', 'bank_address',
-        'currency', 'opening_balance', 'current_balance', 'account_id', 'is_default', 'status'
+        'currency', 'opening_balance', 'current_balance', 'account_id', 'is_default', 'status',
     ];
 
     protected $casts = [

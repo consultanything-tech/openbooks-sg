@@ -24,4 +24,3 @@ Schedule::command('reminders:send')->dailyAt('09:00')->withoutOverlapping();
 
 // Create automated database backup daily at 2:00 AM
 Schedule::command('backup:run')->dailyAt('02:00')->withoutOverlapping();
-

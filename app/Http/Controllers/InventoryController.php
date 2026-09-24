@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Item;
 use App\Models\StockMovement;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     public function index()
     {
@@ -131,7 +132,7 @@ class InventoryController extends Controller
                 'quantity' => $qty,
                 'reference_type' => $validated['bill_reference'] ? 'Bill' : 'Manual',
                 'reference_id' => null,
-                'notes' => $validated['notes'] ?? 'Stock received' . ($validated['bill_reference'] ? ' (Ref: ' . $validated['bill_reference'] . ')' : ''),
+                'notes' => $validated['notes'] ?? 'Stock received'.($validated['bill_reference'] ? ' (Ref: '.$validated['bill_reference'].')' : ''),
                 'user_id' => auth()->id(),
             ]);
         });
@@ -200,7 +201,7 @@ class InventoryController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Middleware\CheckInstallation;
+use App\Http\Middleware\PortalAuth;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Middleware\SetLocale;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
@@ -13,15 +17,15 @@ use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 // Auto-create required cache, view, and session storage directories if missing
 $basePath = dirname(__DIR__);
 $requiredStorageDirs = [
-    $basePath . '/storage/framework/views',
-    $basePath . '/storage/framework/cache',
-    $basePath . '/storage/framework/cache/data',
-    $basePath . '/storage/framework/sessions',
-    $basePath . '/storage/logs',
-    $basePath . '/bootstrap/cache',
+    $basePath.'/storage/framework/views',
+    $basePath.'/storage/framework/cache',
+    $basePath.'/storage/framework/cache/data',
+    $basePath.'/storage/framework/sessions',
+    $basePath.'/storage/logs',
+    $basePath.'/bootstrap/cache',
 ];
 foreach ($requiredStorageDirs as $dir) {
-    if (!is_dir($dir)) {
+    if (! is_dir($dir)) {
         @mkdir($dir, 0775, true);
     }
 }
@@ -35,14 +39,14 @@ return Application::configure(basePath: $basePath)
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(prepend: [
-            \App\Http\Middleware\CheckInstallation::class,
+            CheckInstallation::class,
         ]);
         $middleware->web(append: [
-            \App\Http\Middleware\SetLocale::class,
+            SetLocale::class,
         ]);
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'portal.auth' => \App\Http\Middleware\PortalAuth::class,
+            'role' => RoleMiddleware::class,
+            'portal.auth' => PortalAuth::class,
         ]);
         $middleware->validateCsrfTokens(except: [
             'install/verify-customer',

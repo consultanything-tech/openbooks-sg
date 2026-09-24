@@ -8,9 +8,10 @@ use App\Http\Controllers\Api\ApiItemController;
 use App\Http\Controllers\Api\ApiPaymentController;
 use App\Http\Controllers\Api\ApiQuoteController;
 use App\Http\Controllers\Api\ApiReportController;
+use App\Http\Middleware\ApiAuthenticate;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->middleware(['throttle:api', \App\Http\Middleware\ApiAuthenticate::class])->group(function () {
+Route::prefix('v1')->middleware(['throttle:api', ApiAuthenticate::class])->group(function () {
     // Invoices
     Route::get('/invoices', [ApiInvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [ApiInvoiceController::class, 'show']);

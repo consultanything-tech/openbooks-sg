@@ -2,18 +2,19 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ActivityLog;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 class BackupDatabase extends Command
 {
     protected $signature = 'backup:run';
+
     protected $description = 'Create a compressed MySQL database backup';
 
     public function handle(): int
     {
         $backupDir = storage_path('app/backups');
-        if (!is_dir($backupDir)) {
+        if (! is_dir($backupDir)) {
             mkdir($backupDir, 0775, true);
         }
 
@@ -23,8 +24,8 @@ class BackupDatabase extends Command
         $username = config('database.connections.mysql.username');
         $password = config('database.connections.mysql.password');
 
-        $filename = 'openbooks-backup-' . now()->format('Y-m-d-His') . '.sql.gz';
-        $filepath = $backupDir . '/' . $filename;
+        $filename = 'openbooks-backup-'.now()->format('Y-m-d-His').'.sql.gz';
+        $filepath = $backupDir.'/'.$filename;
 
         $command = sprintf(
             'mysqldump --host=%s --port=%s --user=%s --password=%s %s 2>/dev/null | gzip > %s',
@@ -38,9 +39,10 @@ class BackupDatabase extends Command
 
         exec($command, $output, $returnCode);
 
-        if ($returnCode !== 0 || !file_exists($filepath) || filesize($filepath) === 0) {
+        if ($returnCode !== 0 || ! file_exists($filepath) || filesize($filepath) === 0) {
             @unlink($filepath);
             $this->error('Database backup failed. Check mysqldump credentials and availability.');
+
             return Command::FAILURE;
         }
 
@@ -52,9 +54,9 @@ class BackupDatabase extends Command
 
         // Log activity
         $user = auth()->user();
-        if ($user && class_exists(\App\Models\ActivityLog::class)) {
+        if ($user && class_exists(ActivityLog::class)) {
             try {
-                \App\Models\ActivityLog::create([
+                ActivityLog::create([
                     'user_id' => $user->id,
                     'action' => 'backup',
                     'description' => "Created database backup {$filename} ({$size})",
@@ -70,12 +72,12 @@ class BackupDatabase extends Command
 
     private function pruneOldBackups(string $dir, int $keep): void
     {
-        $files = glob($dir . '/openbooks-backup-*.sql.gz');
+        $files = glob($dir.'/openbooks-backup-*.sql.gz');
         if (count($files) <= $keep) {
             return;
         }
 
-        usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+        usort($files, fn ($a, $b) => filemtime($b) <=> filemtime($a));
 
         foreach (array_slice($files, $keep) as $old) {
             @unlink($old);
@@ -90,6 +92,7 @@ class BackupDatabase extends Command
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }

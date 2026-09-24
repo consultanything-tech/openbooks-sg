@@ -9,7 +9,7 @@ class PortalAuth
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!session('portal_customer_id')) {
+        if (! session('portal_customer_id')) {
             return redirect()->route('portal.login');
         }
 

@@ -3,19 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
-use App\Models\Transaction;
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\Transaction;
 use App\Services\Accounting\JournalService;
 use App\Services\OfxParser;
 use App\Services\QboParser;
+use App\Traits\LogsActivity;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class BankingController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
+
     public function index()
     {
         $accounts = BankAccount::withCount('transactions')->get();
@@ -66,7 +69,7 @@ class BankingController extends Controller
                 'amount' => $request->opening_balance,
                 'transaction_date' => now()->toDateString(),
                 'payment_method' => 'Opening Balance',
-                'description' => 'Opening balance for ' . $account->name,
+                'description' => 'Opening balance for '.$account->name,
             ]);
         }
 
@@ -78,6 +81,7 @@ class BankingController extends Controller
     public function transferForm()
     {
         $accounts = BankAccount::orderBy('name')->get();
+
         return view('banking.transfer', compact('accounts'));
     }
 
@@ -94,7 +98,7 @@ class BankingController extends Controller
         $toAcc = BankAccount::findOrFail($request->to_account_id);
 
         if ($fromAcc->current_balance < $request->amount) {
-            return back()->withInput()->with('error', 'Insufficient funds in ' . $fromAcc->name);
+            return back()->withInput()->with('error', 'Insufficient funds in '.$fromAcc->name);
         }
 
         DB::beginTransaction();
@@ -103,7 +107,7 @@ class BankingController extends Controller
             $fromAcc->decrement('current_balance', $amount);
             $toAcc->increment('current_balance', $amount);
 
-            $ref = 'TRF-' . strtoupper(uniqid());
+            $ref = 'TRF-'.strtoupper(uniqid());
 
             // Debit from source
             Transaction::create([
@@ -113,7 +117,7 @@ class BankingController extends Controller
                 'transaction_date' => $request->transfer_date,
                 'payment_method' => 'Transfer',
                 'reference_number' => $ref,
-                'description' => 'Internal transfer to ' . $toAcc->name,
+                'description' => 'Internal transfer to '.$toAcc->name,
             ]);
 
             // Credit to destination
@@ -124,18 +128,20 @@ class BankingController extends Controller
                 'transaction_date' => $request->transfer_date,
                 'payment_method' => 'Transfer',
                 'reference_number' => $ref,
-                'description' => 'Internal transfer from ' . $fromAcc->name,
+                'description' => 'Internal transfer from '.$fromAcc->name,
             ]);
 
             // Post to the double-entry ledger: DR destination bank / CR source bank
             $journal->postTransfer($fromAcc, $toAcc, $amount, $request->transfer_date, $ref);
 
             DB::commit();
-            $this->logActivity('created', "Transferred S$" . number_format($amount, 2) . " from {$fromAcc->name} to {$toAcc->name}", 'BankAccount', $fromAcc->id);
-            return redirect()->route('banking.index')->with('success', 'Transfer of S$' . number_format($amount, 2) . ' executed successfully.');
+            $this->logActivity('created', 'Transferred S$'.number_format($amount, 2)." from {$fromAcc->name} to {$toAcc->name}", 'BankAccount', $fromAcc->id);
+
+            return redirect()->route('banking.index')->with('success', 'Transfer of S$'.number_format($amount, 2).' executed successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Transfer failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Transfer failed: '.$e->getMessage());
         }
     }
 
@@ -146,7 +152,7 @@ class BankingController extends Controller
         $request->validate([
             'account_name' => 'required|string|max:100',
             'bank_name' => 'required|string|max:100',
-            'account_number' => 'required|string|max:50|unique:bank_accounts,account_number,' . $account->id,
+            'account_number' => 'required|string|max:50|unique:bank_accounts,account_number,'.$account->id,
             'ifsc_code' => 'nullable|string|max:20',
             'branch_name' => 'nullable|string|max:100',
             'account_type' => 'nullable|string|max:50',
@@ -255,11 +261,12 @@ class BankingController extends Controller
         $header = fgetcsv($handle, 0, ',');
         if ($header === false) {
             fclose($handle);
+
             return redirect()->route('banking.transactions')->with('error', 'The CSV file is empty or malformed.');
         }
 
         // Normalize header names
-        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
 
         $imported = 0;
         $skipped = 0;
@@ -280,6 +287,7 @@ class BankingController extends Controller
                     $data = array_combine($header, array_pad($row, count($header), ''));
                     if ($data === false) {
                         $skipped++;
+
                         continue;
                     }
 
@@ -287,23 +295,25 @@ class BankingController extends Controller
                     $amount = floatval(str_replace(',', '', $data['amount'] ?? '0'));
                     $date = trim($data['date'] ?? '');
 
-                    if (!in_array($type, ['income', 'expense']) || $amount <= 0 || empty($date)) {
+                    if (! in_array($type, ['income', 'expense']) || $amount <= 0 || empty($date)) {
                         $skipped++;
+
                         continue;
                     }
 
                     // Try parsing the date
                     try {
-                        $parsedDate = \Carbon\Carbon::parse($date)->toDateString();
+                        $parsedDate = Carbon::parse($date)->toDateString();
                     } catch (\Exception $e) {
                         $skipped++;
+
                         continue;
                     }
 
                     // Look up category by name if provided
                     $categoryId = null;
                     $categoryName = trim($data['category'] ?? '');
-                    if (!empty($categoryName)) {
+                    if (! empty($categoryName)) {
                         $category = Category::where('name', $categoryName)->first();
                         if ($category) {
                             $categoryId = $category->id;
@@ -340,7 +350,8 @@ class BankingController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             fclose($handle);
-            return redirect()->route('banking.transactions')->with('error', 'Import failed: ' . $e->getMessage());
+
+            return redirect()->route('banking.transactions')->with('error', 'Import failed: '.$e->getMessage());
         }
 
         fclose($handle);
@@ -361,16 +372,16 @@ class BankingController extends Controller
 
         // QBO files can be either OFX format or CSV format - try OFX first, fall back to QBO CSV parser
         if ($format === 'QBO') {
-            $parser = new QboParser();
+            $parser = new QboParser;
             $parsed = $parser->parse($content);
 
             // If QBO CSV parser found nothing, try OFX parser (some .qbo files are actually OFX)
             if (empty($parsed)) {
-                $ofxParser = new OfxParser();
+                $ofxParser = new OfxParser;
                 $parsed = $ofxParser->parse($content);
             }
         } else {
-            $parser = new OfxParser();
+            $parser = new OfxParser;
             $parsed = $parser->parse($content);
         }
 
@@ -387,7 +398,7 @@ class BankingController extends Controller
             foreach ($parsed as $tx) {
                 try {
                     $type = $tx['type'] === 'credit' ? 'income' : ($tx['type'] === 'debit' ? 'expense' : $tx['type']);
-                    if (!in_array($type, ['income', 'expense'])) {
+                    if (! in_array($type, ['income', 'expense'])) {
                         $type = $tx['amount'] >= 0 ? 'income' : 'expense';
                     }
 
@@ -418,7 +429,8 @@ class BankingController extends Controller
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('banking.transactions')->with('error', "{$format} import failed: " . $e->getMessage());
+
+            return redirect()->route('banking.transactions')->with('error', "{$format} import failed: ".$e->getMessage());
         }
 
         $this->logActivity('imported', "Imported {$imported} transactions from {$format} file into {$account->name} ({$skipped} skipped)", 'Transaction');
@@ -455,7 +467,7 @@ class BankingController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -514,7 +526,7 @@ class BankingController extends Controller
         $statementBalance = (float) $request->statement_balance;
         $difference = round($statementBalance - $reconciledBalance, 2);
 
-        $this->logActivity('reconciled', "Reconciled " . count($request->transaction_ids) . " transactions for {$account->name}", 'BankAccount', $account->id);
+        $this->logActivity('reconciled', 'Reconciled '.count($request->transaction_ids)." transactions for {$account->name}", 'BankAccount', $account->id);
 
         if ($difference == 0) {
             return redirect()->route('banking.reconcile', $account->id)
@@ -522,7 +534,7 @@ class BankingController extends Controller
         }
 
         return redirect()->route('banking.reconcile', $account->id)
-            ->with('warning', 'Transactions reconciled. There is a difference of ' . ($difference >= 0 ? '+' : '') . number_format($difference, 2) . ' between the statement balance and reconciled balance.');
+            ->with('warning', 'Transactions reconciled. There is a difference of '.($difference >= 0 ? '+' : '').number_format($difference, 2).' between the statement balance and reconciled balance.');
     }
 
     public function unreconcile($transactionId)

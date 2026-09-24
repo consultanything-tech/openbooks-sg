@@ -46,7 +46,7 @@ class JournalService
         }
 
         [$name, $type, $subType] = self::ACCOUNTS[$code]
-            ?? ['Account ' . $code, 'asset', 'current_asset'];
+            ?? ['Account '.$code, 'asset', 'current_asset'];
 
         return Account::create([
             'code' => $code,
@@ -78,7 +78,7 @@ class JournalService
 
         $account = Account::create([
             'code' => $code,
-            'name' => $bank->name ?: ('Bank ' . $code),
+            'name' => $bank->name ?: ('Bank '.$code),
             'type' => 'asset',
             'sub_type' => 'current_asset',
             'parent_id' => $parent->id,
@@ -98,11 +98,12 @@ class JournalService
     {
         $taken = Account::where('code', 'like', '10%')->pluck('code')->all();
         for ($n = 1011; $n <= 1099; $n++) {
-            if (!in_array((string) $n, $taken, true)) {
+            if (! in_array((string) $n, $taken, true)) {
                 return (string) $n;
             }
         }
-        return '10' . Str::lower(Str::random(3));
+
+        return '10'.Str::lower(Str::random(3));
     }
 
     /**
@@ -126,12 +127,13 @@ class JournalService
                 Log::warning('JournalService: skipped unbalanced/empty entry', [
                     'reference' => $reference, 'debits' => $debits, 'credits' => $credits,
                 ]);
+
                 return null;
             }
 
             return DB::transaction(function () use ($reference, $referenceType, $referenceId, $date, $description, $lines) {
                 $entry = JournalEntry::create([
-                    'entry_number' => 'JE-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)),
+                    'entry_number' => 'JE-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
                     'entry_date' => $date,
                     'description' => $description,
                     'reference' => $reference,
@@ -160,7 +162,8 @@ class JournalService
                 return $entry;
             });
         } catch (\Throwable $e) {
-            Log::warning('JournalService: posting failed for ' . $reference . ' — ' . $e->getMessage());
+            Log::warning('JournalService: posting failed for '.$reference.' — '.$e->getMessage());
+
             return null;
         }
     }
@@ -176,7 +179,7 @@ class JournalService
         }
 
         $lines = [
-            ['account' => '1100', 'debit' => $total, 'credit' => 0, 'desc' => 'Receivable ' . $invoice->invoice_number],
+            ['account' => '1100', 'debit' => $total, 'credit' => 0, 'desc' => 'Receivable '.$invoice->invoice_number],
             ['account' => '4000', 'debit' => 0, 'credit' => $subtotal, 'desc' => 'Sales revenue'],
         ];
         if ($tax > 0) {
@@ -184,11 +187,11 @@ class JournalService
         }
 
         return $this->post(
-            $invoice->invoice_number . '-ACCRUAL',
+            $invoice->invoice_number.'-ACCRUAL',
             'Invoice',
             $invoice->id,
             optional($invoice->invoice_date)->format('Y-m-d') ?? now()->toDateString(),
-            'Sales invoice ' . $invoice->invoice_number,
+            'Sales invoice '.$invoice->invoice_number,
             $lines
         );
     }
@@ -205,18 +208,18 @@ class JournalService
 
         $lines = [
             ['account' => '5100', 'debit' => $subtotal, 'credit' => 0, 'desc' => 'Purchase / expense'],
-            ['account' => '2000', 'debit' => 0, 'credit' => $total, 'desc' => 'Payable ' . $bill->bill_number],
+            ['account' => '2000', 'debit' => 0, 'credit' => $total, 'desc' => 'Payable '.$bill->bill_number],
         ];
         if ($tax > 0) {
             $lines[] = ['account' => '2100', 'debit' => $tax, 'credit' => 0, 'desc' => 'Input GST credit'];
         }
 
         return $this->post(
-            $bill->bill_number . '-ACCRUAL',
+            $bill->bill_number.'-ACCRUAL',
             'Bill',
             $bill->id,
             optional($bill->bill_date)->format('Y-m-d') ?? now()->toDateString(),
-            'Vendor bill ' . $bill->bill_number,
+            'Vendor bill '.$bill->bill_number,
             $lines
         );
     }
@@ -232,11 +235,11 @@ class JournalService
         $bankCode = $bank ? $this->bankLedgerAccount($bank)->code : '1010';
 
         return $this->post(
-            $invoice->invoice_number . '-PAY-' . number_format($amount, 2, '.', ''),
+            $invoice->invoice_number.'-PAY-'.number_format($amount, 2, '.', ''),
             'Invoice',
             $invoice->id,
             $date ?? now()->toDateString(),
-            'Payment received for ' . $invoice->invoice_number,
+            'Payment received for '.$invoice->invoice_number,
             [
                 ['account' => $bankCode, 'debit' => $amount, 'credit' => 0, 'desc' => 'Cash/bank in'],
                 ['account' => '1100', 'debit' => 0, 'credit' => $amount, 'desc' => 'Settle receivable'],
@@ -255,11 +258,11 @@ class JournalService
         $bankCode = $bank ? $this->bankLedgerAccount($bank)->code : '1010';
 
         return $this->post(
-            $bill->bill_number . '-PAY-' . number_format($amount, 2, '.', ''),
+            $bill->bill_number.'-PAY-'.number_format($amount, 2, '.', ''),
             'Bill',
             $bill->id,
             $date ?? now()->toDateString(),
-            'Payment made for ' . $bill->bill_number,
+            'Payment made for '.$bill->bill_number,
             [
                 ['account' => '2000', 'debit' => $amount, 'credit' => 0, 'desc' => 'Settle payable'],
                 ['account' => $bankCode, 'debit' => 0, 'credit' => $amount, 'desc' => 'Cash/bank out'],
@@ -278,11 +281,11 @@ class JournalService
         $code = $this->bankLedgerAccount($bank)->code;
 
         return $this->post(
-            'BANK-' . $bank->id . '-OPEN',
+            'BANK-'.$bank->id.'-OPEN',
             'BankAccount',
             $bank->id,
             $date ?? now()->toDateString(),
-            'Opening balance for ' . $bank->name,
+            'Opening balance for '.$bank->name,
             [
                 ['account' => $code, 'debit' => abs($amount), 'credit' => 0, 'desc' => 'Opening cash'],
                 ['account' => '3200', 'debit' => 0, 'credit' => abs($amount), 'desc' => 'Opening balance equity'],
@@ -300,14 +303,14 @@ class JournalService
 
         $fromCode = $this->bankLedgerAccount($from)->code;
         $toCode = $this->bankLedgerAccount($to)->code;
-        $reference = 'TRF-' . ($ref ?: ($from->id . '-' . $to->id . '-' . number_format($amount, 2, '.', '')));
+        $reference = 'TRF-'.($ref ?: ($from->id.'-'.$to->id.'-'.number_format($amount, 2, '.', '')));
 
         return $this->post(
             $reference,
             'Transfer',
             $from->id,
             $date ?? now()->toDateString(),
-            'Transfer ' . $from->name . ' → ' . $to->name,
+            'Transfer '.$from->name.' → '.$to->name,
             [
                 ['account' => $toCode, 'debit' => $amount, 'credit' => 0, 'desc' => 'Cash in'],
                 ['account' => $fromCode, 'debit' => 0, 'credit' => $amount, 'desc' => 'Cash out'],
@@ -333,23 +336,23 @@ class JournalService
         }
 
         // Cannot post a cash leg without knowing which bank account
-        if (!$t->bank_account_id) {
+        if (! $t->bank_account_id) {
             return null;
         }
 
         $bank = BankAccount::find($t->bank_account_id);
-        if (!$bank) {
+        if (! $bank) {
             return null;
         }
 
         $bankCode = $this->bankLedgerAccount($bank)->code;
-        $ref = 'TXN-' . $t->id;
+        $ref = 'TXN-'.$t->id;
         $date = optional($t->transaction_date)->format('Y-m-d') ?? now()->toDateString();
         $absAmount = abs($amount);
 
         // Invoice payment received: DR Bank / CR AR
         if ($t->type === 'income' && $t->invoice_id) {
-            return $this->post($ref, 'Transaction', $t->id, $date, 'Payment received (Invoice #' . $t->invoice_id . ')', [
+            return $this->post($ref, 'Transaction', $t->id, $date, 'Payment received (Invoice #'.$t->invoice_id.')', [
                 ['account' => $bankCode, 'debit' => $absAmount, 'credit' => 0, 'desc' => 'Cash in'],
                 ['account' => '1100', 'debit' => 0, 'credit' => $absAmount, 'desc' => 'Settle receivable'],
             ]);
@@ -357,7 +360,7 @@ class JournalService
 
         // Bill payment made: DR AP / CR Bank
         if ($t->type === 'expense' && $t->bill_id) {
-            return $this->post($ref, 'Transaction', $t->id, $date, 'Payment made (Bill #' . $t->bill_id . ')', [
+            return $this->post($ref, 'Transaction', $t->id, $date, 'Payment made (Bill #'.$t->bill_id.')', [
                 ['account' => '2000', 'debit' => $absAmount, 'credit' => 0, 'desc' => 'Settle payable'],
                 ['account' => $bankCode, 'debit' => 0, 'credit' => $absAmount, 'desc' => 'Cash out'],
             ]);
@@ -448,7 +451,7 @@ class JournalService
             $fromLeg = $legs->firstWhere('type', 'expense');
             $toLeg = $legs->firstWhere('type', 'income');
 
-            if (!$fromLeg || !$toLeg) {
+            if (! $fromLeg || ! $toLeg) {
                 continue;
             }
 
@@ -474,7 +477,7 @@ class JournalService
             // Compute what the ledger already has for this bank account
             $ledgerBalance = (float) JournalEntry::join('journal_entry_lines', 'journal_entries.id', '=', 'journal_entry_lines.journal_entry_id')
                 ->where('journal_entry_lines.account_id', $ledgerAcct->id)
-                ->where('journal_entries.reference', '!=', 'BANK-' . $bank->id . '-OPEN')
+                ->where('journal_entries.reference', '!=', 'BANK-'.$bank->id.'-OPEN')
                 ->selectRaw('COALESCE(SUM(journal_entry_lines.debit),0) - COALESCE(SUM(journal_entry_lines.credit),0) as net')
                 ->value('net');
 

@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BankAccount;
-use App\Models\Invoice;
 use App\Models\Bill;
-use App\Models\Transaction;
 use App\Models\Category;
-use App\Models\Customer;
-use App\Models\Vendor;
+use App\Models\Invoice;
 use App\Models\Tax;
+use App\Models\Transaction;
+use App\Services\Accounting\LedgerReportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function profitLoss(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function profitLoss(Request $request, LedgerReportService $ledger)
     {
         $startDate = $request->input('start_date', now()->startOfYear()->toDateString());
         $endDate = $request->input('end_date', now()->endOfYear()->toDateString());
@@ -116,7 +113,7 @@ class ReportController extends Controller
             $daysOverdue = $dueDate->isPast() ? $today->diffInDays($dueDate) : 0;
             $amount = (float) $invoice->due_amount;
 
-            if (!$dueDate->isPast()) {
+            if (! $dueDate->isPast()) {
                 $bucket = 'current';
             } elseif ($daysOverdue <= 30) {
                 $bucket = '1_30';
@@ -130,7 +127,7 @@ class ReportController extends Controller
 
             $buckets[$bucket] += $amount;
 
-            if (!isset($customerBreakdown[$customerId])) {
+            if (! isset($customerBreakdown[$customerId])) {
                 $customerBreakdown[$customerId] = [
                     'name' => $customerName,
                     'current' => 0, '1_30' => 0, '31_60' => 0, '61_90' => 0, '90_plus' => 0, 'total' => 0,
@@ -143,7 +140,7 @@ class ReportController extends Controller
         $grandTotal = array_sum($buckets);
 
         // Sort by total descending
-        uasort($customerBreakdown, fn($a, $b) => $b['total'] <=> $a['total']);
+        uasort($customerBreakdown, fn ($a, $b) => $b['total'] <=> $a['total']);
 
         return view('reports.ar_aging', compact('buckets', 'customerBreakdown', 'grandTotal', 'today'));
     }
@@ -166,7 +163,7 @@ class ReportController extends Controller
             $daysOverdue = $dueDate->isPast() ? $today->diffInDays($dueDate) : 0;
             $amount = (float) $bill->due_amount;
 
-            if (!$dueDate->isPast()) {
+            if (! $dueDate->isPast()) {
                 $bucket = 'current';
             } elseif ($daysOverdue <= 30) {
                 $bucket = '1_30';
@@ -180,7 +177,7 @@ class ReportController extends Controller
 
             $buckets[$bucket] += $amount;
 
-            if (!isset($vendorBreakdown[$vendorId])) {
+            if (! isset($vendorBreakdown[$vendorId])) {
                 $vendorBreakdown[$vendorId] = [
                     'name' => $vendorName,
                     'current' => 0, '1_30' => 0, '31_60' => 0, '61_90' => 0, '90_plus' => 0, 'total' => 0,
@@ -192,12 +189,12 @@ class ReportController extends Controller
 
         $grandTotal = array_sum($buckets);
 
-        uasort($vendorBreakdown, fn($a, $b) => $b['total'] <=> $a['total']);
+        uasort($vendorBreakdown, fn ($a, $b) => $b['total'] <=> $a['total']);
 
         return view('reports.ap_aging', compact('buckets', 'vendorBreakdown', 'grandTotal', 'today'));
     }
 
-    public function balanceSheet(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function balanceSheet(Request $request, LedgerReportService $ledger)
     {
         $asOfDate = $request->input('as_of', now()->toDateString());
 
@@ -206,13 +203,14 @@ class ReportController extends Controller
         return view('reports.balance_sheet', $ledger->balanceSheet($asOfDate));
     }
 
-    public function trialBalance(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function trialBalance(Request $request, LedgerReportService $ledger)
     {
         $asOfDate = $request->input('as_of', now()->toDateString());
+
         return view('reports.trial_balance', $ledger->trialBalance($asOfDate));
     }
 
-    public function exportTrialBalance(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function exportTrialBalance(Request $request, LedgerReportService $ledger)
     {
         $tb = $ledger->trialBalance($request->input('as_of', now()->toDateString()));
 
@@ -230,7 +228,7 @@ class ReportController extends Controller
         return $this->buildCsvResponse('trial_balance.csv', $headers, $rows);
     }
 
-    public function generalLedger(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function generalLedger(Request $request, LedgerReportService $ledger)
     {
         $code = (string) $request->input('account', '');
         $start = $request->input('start_date');
@@ -244,7 +242,7 @@ class ReportController extends Controller
         return view('reports.general_ledger', $gl);
     }
 
-    public function exportGeneralLedger(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function exportGeneralLedger(Request $request, LedgerReportService $ledger)
     {
         $code = (string) $request->input('account', '');
         $gl = $code !== '' ? $ledger->generalLedger($code, $request->input('start_date'), $request->input('end_date', now()->toDateString())) : null;
@@ -267,11 +265,12 @@ class ReportController extends Controller
         }
         $rows[] = ['', '', 'TOTAL', '', number_format($gl['totalDebit'], 2), number_format($gl['totalCredit'], 2), number_format($gl['closing'], 2)];
 
-        $filename = 'general_ledger_' . $gl['account']->code . '.csv';
+        $filename = 'general_ledger_'.$gl['account']->code.'.csv';
+
         return $this->buildCsvResponse($filename, $headers, $rows);
     }
 
-    public function exportProfitLoss(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function exportProfitLoss(Request $request, LedgerReportService $ledger)
     {
         $startDate = $request->input('start_date', now()->startOfYear()->toDateString());
         $endDate = $request->input('end_date', now()->endOfYear()->toDateString());
@@ -288,7 +287,7 @@ class ReportController extends Controller
             ->whereBetween('transaction_date', [$startDate, $endDate])->sum('amount');
 
         $expensesByCategory = Category::where('type', 'expense')
-            ->withSum(['transactions' => fn($q) => $q->whereBetween('transaction_date', [$startDate, $endDate])], 'amount')
+            ->withSum(['transactions' => fn ($q) => $q->whereBetween('transaction_date', [$startDate, $endDate])], 'amount')
             ->get();
 
         $headers = ['Category', 'Amount'];
@@ -325,13 +324,19 @@ class ReportController extends Controller
             $daysOverdue = $dueDate->isPast() ? $today->diffInDays($dueDate) : 0;
             $amount = (float) $invoice->due_amount;
 
-            if (!$dueDate->isPast()) { $bucket = 'current'; }
-            elseif ($daysOverdue <= 30) { $bucket = '1_30'; }
-            elseif ($daysOverdue <= 60) { $bucket = '31_60'; }
-            elseif ($daysOverdue <= 90) { $bucket = '61_90'; }
-            else { $bucket = '90_plus'; }
+            if (! $dueDate->isPast()) {
+                $bucket = 'current';
+            } elseif ($daysOverdue <= 30) {
+                $bucket = '1_30';
+            } elseif ($daysOverdue <= 60) {
+                $bucket = '31_60';
+            } elseif ($daysOverdue <= 90) {
+                $bucket = '61_90';
+            } else {
+                $bucket = '90_plus';
+            }
 
-            if (!isset($customerBreakdown[$customerId])) {
+            if (! isset($customerBreakdown[$customerId])) {
                 $customerBreakdown[$customerId] = ['name' => $customerName, 'current' => 0, '1_30' => 0, '31_60' => 0, '61_90' => 0, '90_plus' => 0, 'total' => 0];
             }
             $customerBreakdown[$customerId][$bucket] += $amount;
@@ -368,13 +373,19 @@ class ReportController extends Controller
             $daysOverdue = $dueDate->isPast() ? $today->diffInDays($dueDate) : 0;
             $amount = (float) $bill->due_amount;
 
-            if (!$dueDate->isPast()) { $bucket = 'current'; }
-            elseif ($daysOverdue <= 30) { $bucket = '1_30'; }
-            elseif ($daysOverdue <= 60) { $bucket = '31_60'; }
-            elseif ($daysOverdue <= 90) { $bucket = '61_90'; }
-            else { $bucket = '90_plus'; }
+            if (! $dueDate->isPast()) {
+                $bucket = 'current';
+            } elseif ($daysOverdue <= 30) {
+                $bucket = '1_30';
+            } elseif ($daysOverdue <= 60) {
+                $bucket = '31_60';
+            } elseif ($daysOverdue <= 90) {
+                $bucket = '61_90';
+            } else {
+                $bucket = '90_plus';
+            }
 
-            if (!isset($vendorBreakdown[$vendorId])) {
+            if (! isset($vendorBreakdown[$vendorId])) {
                 $vendorBreakdown[$vendorId] = ['name' => $vendorName, 'current' => 0, '1_30' => 0, '31_60' => 0, '61_90' => 0, '90_plus' => 0, 'total' => 0];
             }
             $vendorBreakdown[$vendorId][$bucket] += $amount;
@@ -398,7 +409,7 @@ class ReportController extends Controller
         return $this->buildCsvResponse('ap_aging.csv', $headers, $rows);
     }
 
-    public function exportBalanceSheet(Request $request, \App\Services\Accounting\LedgerReportService $ledger)
+    public function exportBalanceSheet(Request $request, LedgerReportService $ledger)
     {
         $bs = $ledger->balanceSheet($request->input('as_of', now()->toDateString()));
 
@@ -406,7 +417,7 @@ class ReportController extends Controller
         $rows = [];
         $rows[] = ['--- ASSETS ---', ''];
         foreach ($bs['bankAccounts'] as $acc) {
-            $rows[] = [$acc->name . ' (' . ($acc->bank_name ?? $acc->type) . ')', number_format($acc->current_balance, 2)];
+            $rows[] = [$acc->name.' ('.($acc->bank_name ?? $acc->type).')', number_format($acc->current_balance, 2)];
         }
         $rows[] = ['Total Cash & Bank', number_format($bs['totalCashBank'], 2)];
         $rows[] = ['Accounts Receivable', number_format($bs['accountsReceivable'], 2)];
@@ -440,7 +451,7 @@ class ReportController extends Controller
             $income = (float) Transaction::where('type', 'income')->whereBetween('transaction_date', [$monthStart, $monthEnd])->sum('amount');
             $expense = (float) Transaction::where('type', 'expense')->whereBetween('transaction_date', [$monthStart, $monthEnd])->sum('amount');
             $rows[] = [
-                date('M', strtotime($monthStart)) . ' ' . $year,
+                date('M', strtotime($monthStart)).' '.$year,
                 number_format($income, 2),
                 number_format($expense, 2),
                 number_format($income - $expense, 2),
@@ -576,7 +587,7 @@ class ReportController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 }

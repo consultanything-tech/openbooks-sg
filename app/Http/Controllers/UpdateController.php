@@ -19,10 +19,11 @@ class UpdateController extends Controller
         $versionFile = storage_path('version.json');
         if (File::exists($versionFile)) {
             $data = json_decode(File::get($versionFile), true);
-            if (!empty($data['version'])) {
+            if (! empty($data['version'])) {
                 return $data['version'];
             }
         }
+
         return '1.0.0';
     }
 
@@ -63,7 +64,8 @@ class UpdateController extends Controller
             // 2. Clear application and template caches
             try {
                 Artisan::call('optimize:clear');
-            } catch (Exception $e) {}
+            } catch (Exception $e) {
+            }
 
             // 3. Update version file
             $newVersion = '1.0.1';
@@ -72,7 +74,7 @@ class UpdateController extends Controller
                 'app_name' => 'OpenBooks SG',
                 'updated_at' => date('Y-m-d H:i:s'),
                 'previous_version' => $currentVersion,
-                'notes' => 'One-Click In-Dashboard Update Applied Successfully'
+                'notes' => 'One-Click In-Dashboard Update Applied Successfully',
             ];
             File::put(storage_path('version.json'), json_encode($versionData, JSON_PRETTY_PRINT));
 
@@ -88,13 +90,14 @@ class UpdateController extends Controller
                 'success' => true,
                 'message' => "System successfully updated to v{$newVersion}!",
                 'current_version' => $newVersion,
-                'output' => $migrateOutput
+                'output' => $migrateOutput,
             ]);
         } catch (Exception $e) {
-            Log::error('Auto-update error: ' . $e->getMessage());
+            Log::error('Auto-update error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to apply update: ' . $e->getMessage()
+                'message' => 'Failed to apply update: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -118,8 +121,8 @@ class UpdateController extends Controller
                 'User-configurable NVIDIA API Key and model picker in Settings',
                 'Enhanced Banking with bank code support and bank transfer reconciliation',
                 'Printable thermal and standard tax invoices with dynamic QR codes',
-                'One-Click System Updates directly from admin dashboard'
-            ]
+                'One-Click System Updates directly from admin dashboard',
+            ],
         ];
     }
 }

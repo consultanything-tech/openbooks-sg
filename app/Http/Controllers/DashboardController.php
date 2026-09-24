@@ -20,10 +20,10 @@ class DashboardController extends Controller
         $company = Company::first() ?? new Company(['name' => 'OpenBooks SG', 'currency_symbol' => 'S$', 'currency_code' => 'SGD']);
 
         // Redirect to onboarding wizard for fresh installs
-        $isFreshInstall = !Customer::exists() && !Invoice::exists();
+        $isFreshInstall = ! Customer::exists() && ! Invoice::exists();
         $onboardingDismissed = session('onboarding_dismissed', false);
 
-        if ($isFreshInstall && !$onboardingDismissed) {
+        if ($isFreshInstall && ! $onboardingDismissed) {
             return redirect()->route('onboarding.index');
         }
 

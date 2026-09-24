@@ -11,7 +11,7 @@ class CheckInstallation
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -26,15 +26,17 @@ class CheckInstallation
         $isInstallRoute = $request->is('install*') || $request->is('install');
 
         // If not installed and not on install route or assets, redirect to install wizard
-        if (!$isInstalled && !$isInstallRoute && !$request->is('build*') && !$request->is('assets*')) {
+        if (! $isInstalled && ! $isInstallRoute && ! $request->is('build*') && ! $request->is('assets*')) {
             $base = rtrim($request->getBaseUrl(), '/');
-            return redirect($base . '/install');
+
+            return redirect($base.'/install');
         }
 
         // If already installed and trying to access install wizard, redirect to login unless on complete screen
-        if ($isInstalled && $isInstallRoute && !$request->is('install/complete')) {
+        if ($isInstalled && $isInstallRoute && ! $request->is('install/complete')) {
             $base = rtrim($request->getBaseUrl(), '/');
-            return redirect($base . '/login')->with('info', 'OpenBooks SG is already installed.');
+
+            return redirect($base.'/login')->with('info', 'OpenBooks SG is already installed.');
         }
 
         return $next($request);

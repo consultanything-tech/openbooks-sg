@@ -1,37 +1,38 @@
 <?php
 
-use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AiChatController;
 use App\Http\Controllers\AskController;
-use App\Http\Controllers\CustomReportController;
-use App\Http\Controllers\ReceiptOcrController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BankingController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\BillController;
+use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\ChartOfAccountsController;
 use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerPortalController;
+use App\Http\Controllers\CustomReportController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\ExpenseClaimController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
-use App\Http\Controllers\BudgetController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\ReceiptOcrController;
+use App\Http\Controllers\RecurringController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\UpdateController;
-use App\Http\Controllers\RecurringController;
-use App\Http\Controllers\QuoteController;
-use App\Http\Controllers\ExpenseClaimController;
-use App\Http\Controllers\VendorController;
-use App\Http\Controllers\TwoFactorController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\EmailController;
 use App\Http\Controllers\TimeTrackingController;
-use App\Http\Controllers\ChartOfAccountsController;
-use App\Http\Controllers\CustomerPortalController;
+use App\Http\Controllers\TwoFactorController;
+use App\Http\Controllers\UpdateController;
+use App\Http\Controllers\VendorController;
+use App\Http\Controllers\WebhookController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -90,9 +91,10 @@ Route::prefix('portal')->name('portal.')->group(function () {
 });
 
 Route::get('/admin', function () {
-    if (\Illuminate\Support\Facades\Auth::check()) {
+    if (Auth::check()) {
         return redirect()->route('dashboard');
     }
+
     return redirect()->route('login');
 });
 
@@ -107,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
         if (in_array($locale, ['en', 'ms'])) {
             session(['locale' => $locale]);
         }
+
         return redirect()->back();
     })->name('locale.set');
 
@@ -449,7 +452,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/settings/backups/{filename}', [BackupController::class, 'destroy'])->name('settings.backups.destroy');
 
         // Activity Log
-    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity_log.index');
+        Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity_log.index');
 
         // Webhooks
         Route::get('/webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
@@ -457,7 +460,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/webhooks/{id}', [WebhookController::class, 'update'])->name('webhooks.update');
         Route::delete('/webhooks/{id}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
 
-    // System Updates
+        // System Updates
         Route::get('/updates', [UpdateController::class, 'index'])->name('updates.index');
         Route::get('/updates/check', [UpdateController::class, 'check'])->name('updates.check');
         Route::post('/updates/apply', [UpdateController::class, 'apply'])->name('updates.apply');

@@ -9,7 +9,7 @@ class CreditNoteItem extends Model
 {
     protected $fillable = [
         'credit_note_id', 'item_id', 'name', 'description',
-        'quantity', 'price', 'tax_rate', 'tax_amount', 'total'
+        'quantity', 'price', 'tax_rate', 'tax_amount', 'total',
     ];
 
     protected $casts = [

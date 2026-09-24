@@ -92,7 +92,7 @@ class BudgetController extends Controller
         // Key by "category_id-month"
         $existing = [];
         foreach ($budgets as $b) {
-            $existing[$b->category_id . '-' . $b->month] = (float) $b->amount;
+            $existing[$b->category_id.'-'.$b->month] = (float) $b->amount;
         }
 
         return view('budgets.create', compact('year', 'categories', 'existing'));
@@ -111,7 +111,7 @@ class BudgetController extends Controller
         $deleted = 0;
 
         foreach ($budgetData as $categoryId => $months) {
-            if (!is_array($months)) {
+            if (! is_array($months)) {
                 continue;
             }
             foreach ($months as $month => $amount) {

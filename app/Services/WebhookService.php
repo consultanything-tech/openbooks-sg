@@ -38,7 +38,7 @@ class WebhookService
             'X-OpenBooks-Event' => $event,
         ];
 
-        if (!empty($webhook->secret)) {
+        if (! empty($webhook->secret)) {
             $signature = hash_hmac('sha256', $body, $webhook->secret);
             $headers['X-OpenBooks-Signature'] = $signature;
         }
@@ -52,20 +52,20 @@ class WebhookService
             $webhook->update(['last_triggered_at' => now()]);
 
             if ($response->failed()) {
-                Log::warning("Webhook delivery failed", [
+                Log::warning('Webhook delivery failed', [
                     'webhook_id' => $webhook->id,
                     'url' => $webhook->url,
                     'event' => $event,
                     'status' => $response->status(),
                 ]);
             } else {
-                Log::info("Webhook delivered successfully", [
+                Log::info('Webhook delivered successfully', [
                     'webhook_id' => $webhook->id,
                     'event' => $event,
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Webhook delivery exception", [
+            Log::error('Webhook delivery exception', [
                 'webhook_id' => $webhook->id,
                 'url' => $webhook->url,
                 'event' => $event,

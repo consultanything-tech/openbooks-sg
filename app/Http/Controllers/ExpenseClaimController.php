@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Company;
 use App\Models\ExpenseClaim;
 use App\Models\Transaction;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class ExpenseClaimController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     public function index(Request $request)
     {
@@ -43,7 +44,7 @@ class ExpenseClaimController extends Controller
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
         $categories = Category::where('type', 'expense')->get();
         $lastId = ExpenseClaim::withTrashed()->max('id') ?? 0;
-        $nextNumber = 'EXP-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        $nextNumber = 'EXP-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
         return view('expense-claims.create', compact('company', 'categories', 'nextNumber'));
     }

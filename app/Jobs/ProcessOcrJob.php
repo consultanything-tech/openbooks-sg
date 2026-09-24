@@ -15,6 +15,7 @@ class ProcessOcrJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
+
     public int $timeout = 120;
 
     public function __construct(
@@ -25,7 +26,7 @@ class ProcessOcrJob implements ShouldQueue
 
     public function handle(ReceiptOcrService $ocrService): void
     {
-        Log::info("Processing OCR for receipt", [
+        Log::info('Processing OCR for receipt', [
             'file' => $this->filePath,
             'user_id' => $this->userId,
         ]);
@@ -33,12 +34,12 @@ class ProcessOcrJob implements ShouldQueue
         try {
             $result = $ocrService->extractFromReceipt($this->filePath);
 
-            Log::info("OCR processing complete", [
+            Log::info('OCR processing complete', [
                 'file' => $this->filePath,
                 'result_keys' => array_keys($result ?? []),
             ]);
         } catch (\Exception $e) {
-            Log::error("OCR processing failed", [
+            Log::error('OCR processing failed', [
                 'file' => $this->filePath,
                 'error' => $e->getMessage(),
             ]);

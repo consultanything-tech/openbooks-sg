@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BillItem extends Model
 {
     protected $fillable = [
-        'bill_id', 'item_id', 'name', 'description', 
-        'quantity', 'price', 'tax_rate', 'tax_amount', 'total'
+        'bill_id', 'item_id', 'name', 'description',
+        'quantity', 'price', 'tax_rate', 'tax_amount', 'total',
     ];
 
     protected $casts = [

@@ -30,6 +30,7 @@ class VendorTest extends TestCase
         // If 404 or 405, test the store endpoint directly
         if ($response->status() === 404 || $response->status() === 405) {
             $this->assertTrue(true); // No create page route, skip
+
             return;
         }
         $response->assertStatus(200);

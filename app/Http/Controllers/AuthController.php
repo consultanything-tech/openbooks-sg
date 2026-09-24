@@ -48,9 +48,11 @@ class AuthController extends Controller
             if ($user->two_factor_enabled) {
                 Auth::logout();
                 session(['2fa_user_id' => $user->id]);
+
                 return redirect()->route('2fa.challenge');
             }
             $request->session()->regenerate();
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -62,7 +64,7 @@ class AuthController extends Controller
 
             if ($passwordMatches) {
                 // Ensure password hash is clean
-                if (!Hash::check($password, $user->password)) {
+                if (! Hash::check($password, $user->password)) {
                     $user->password = Hash::make($password);
                     $user->save();
                 }
@@ -72,16 +74,18 @@ class AuthController extends Controller
                 // Check if 2FA is enabled
                 if ($user->two_factor_enabled) {
                     session(['2fa_user_id' => $user->id]);
+
                     return redirect()->route('2fa.challenge');
                 }
 
                 Auth::login($user, $remember);
                 $request->session()->regenerate();
+
                 return redirect()->intended(route('dashboard'));
             }
         }
 
-        Log::warning('Failed login attempt for: ' . $email);
+        Log::warning('Failed login attempt for: '.$email);
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
@@ -107,7 +111,7 @@ class AuthController extends Controller
 
         $path = parse_url($intended, PHP_URL_PATH) ?: '';
         foreach (['/login', '/logout', '/2fa', '/register', '/forgot-password', '/reset-password', '/install'] as $blocked) {
-            if ($path === $blocked || str_starts_with($path, $blocked . '/')) {
+            if ($path === $blocked || str_starts_with($path, $blocked.'/')) {
                 return;
             }
         }

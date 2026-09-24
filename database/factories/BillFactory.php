@@ -22,7 +22,7 @@ class BillFactory extends Factory
         $total = $subtotal + $taxTotal - $discountTotal;
 
         return [
-            'bill_number' => 'BILL-' . fake()->year() . '-' . strtoupper(Str::random(6)),
+            'bill_number' => 'BILL-'.fake()->year().'-'.strtoupper(Str::random(6)),
             'vendor_id' => Vendor::factory(),
             'bill_date' => now()->subDays(fake()->numberBetween(0, 60)),
             'due_date' => now()->addDays(fake()->numberBetween(14, 30)),
@@ -43,6 +43,7 @@ class BillFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $total = $attributes['total'];
+
             return [
                 'status' => 'paid',
                 'paid_amount' => $total,

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+
 class OfxParser
 {
     /**
@@ -80,7 +82,7 @@ class OfxParser
         $parsedDate = $this->parseOfxDate($date ?? '');
 
         // Build description from NAME and MEMO
-        $description = trim(($name ?? '') . ($memo ? ' - ' . $memo : ''));
+        $description = trim(($name ?? '').($memo ? ' - '.$memo : ''));
         if (empty($description)) {
             $description = $trntype ?: 'Bank Transaction';
         }
@@ -119,11 +121,11 @@ class OfxParser
 
         // Find all STMTTRN elements (try direct and namespaced)
         $stmttrns = $xml->xpath('//STMTTRN');
-        if (empty($stmttrns) && !empty($namespaces)) {
+        if (empty($stmttrns) && ! empty($namespaces)) {
             foreach ($namespaces as $prefix => $uri) {
                 $xml->registerXPathNamespace($prefix, $uri);
                 $stmttrns = $xml->xpath("//{$prefix}:STMTTRN");
-                if (!empty($stmttrns)) {
+                if (! empty($stmttrns)) {
                     break;
                 }
             }
@@ -149,7 +151,7 @@ class OfxParser
                 $amountFloat = (float) $amount;
                 $parsedDate = $this->parseOfxDate($date);
 
-                $description = trim($name . ($memo ? ' - ' . $memo : ''));
+                $description = trim($name.($memo ? ' - '.$memo : ''));
                 if (empty($description)) {
                     $description = $trntype ?: 'Bank Transaction';
                 }
@@ -177,13 +179,14 @@ class OfxParser
     private function extractTag(string $block, string $tag): ?string
     {
         // Try with closing tag first
-        if (preg_match('/<' . $tag . '>\s*(.*?)\s*<\/' . $tag . '>/si', $block, $m)) {
+        if (preg_match('/<'.$tag.'>\s*(.*?)\s*<\/'.$tag.'>/si', $block, $m)) {
             return trim($m[1]);
         }
         // OFX 1.x often omits closing tags
-        if (preg_match('/<' . $tag . '>\s*([^\r\n<]+)/si', $block, $m)) {
+        if (preg_match('/<'.$tag.'>\s*([^\r\n<]+)/si', $block, $m)) {
             return trim($m[1]);
         }
+
         return null;
     }
 
@@ -208,7 +211,7 @@ class OfxParser
 
         // Try Carbon as fallback
         try {
-            return \Carbon\Carbon::parse($date)->toDateString();
+            return Carbon::parse($date)->toDateString();
         } catch (\Throwable $e) {
             return now()->toDateString();
         }

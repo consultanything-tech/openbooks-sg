@@ -6,6 +6,7 @@ use App\Models\AskQuery;
 use App\Services\AskOpenBooks\AnswerNarrator;
 use App\Services\AskOpenBooks\AnswerService;
 use App\Services\AskOpenBooks\IntentResolver;
+use App\Services\AskOpenBooks\LlmClient;
 use App\Services\AskOpenBooks\QuestionCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class AskController extends Controller
             'keys' => QuestionCatalog::keys(),
             'recent' => AskQuery::where('user_id', auth()->id())
                 ->latest()->limit(5)->get(['question', 'intent_key']),
-            'aiConfigured' => (new \App\Services\AskOpenBooks\LlmClient())->isConfigured(),
+            'aiConfigured' => (new LlmClient)->isConfigured(),
         ]);
     }
 
@@ -61,7 +62,7 @@ class AskController extends Controller
         // Scope guard: a key must exist in the catalog, otherwise resolve
         // layman phrasing (keywords first, LLM refinement when configured).
         if ($key !== null && $key !== '') {
-            if (!in_array($key, QuestionCatalog::keys(), true)) {
+            if (! in_array($key, QuestionCatalog::keys(), true)) {
                 return $this->outOfScope($question);
             }
         } else {
@@ -80,7 +81,8 @@ class AskController extends Controller
         try {
             $payload = $service->answer($key, $question !== '' ? $question : null);
         } catch (\Exception $e) {
-            Log::error('AskOpenBooks failed: ' . $e->getMessage());
+            Log::error('AskOpenBooks failed: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'I could not compute that answer right now. Please try again.',
@@ -107,7 +109,7 @@ class AskController extends Controller
         $request->validate(['key' => 'required|string|max:60']);
         $key = (string) $request->input('key');
 
-        if (!in_array($key, QuestionCatalog::keys(), true) || !$service->supportsDrill($key)) {
+        if (! in_array($key, QuestionCatalog::keys(), true) || ! $service->supportsDrill($key)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No row-level detail is available for that question.',
@@ -122,7 +124,8 @@ class AskController extends Controller
         try {
             $payload = $service->drill($key);
         } catch (\Exception $e) {
-            Log::error('AskOpenBooks drill failed: ' . $e->getMessage());
+            Log::error('AskOpenBooks drill failed: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'I could not pull the details right now. Please try again.',
@@ -141,7 +144,7 @@ class AskController extends Controller
         return response()->json([
             'status' => 'out_of_scope',
             'message' => $question !== ''
-                ? 'I can only answer questions about your own OpenBooks data — cash, receivables, payables, revenue, GST, stock and budgets. I could not match "' . $question . '" to any of them.'
+                ? 'I can only answer questions about your own OpenBooks data — cash, receivables, payables, revenue, GST, stock and budgets. I could not match "'.$question.'" to any of them.'
                 : 'That question is outside what I can answer from your books.',
             'suggestions' => $suggestions,
         ], 200);

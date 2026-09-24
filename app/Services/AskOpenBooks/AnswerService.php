@@ -5,13 +5,14 @@ namespace App\Services\AskOpenBooks;
 use App\Models\BankAccount;
 use App\Models\Bill;
 use App\Models\Budget;
-use App\Models\Category;
+use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\RecurringTemplate;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Deterministic answer engine for Ask OpenBooks.
@@ -20,13 +21,14 @@ use Illuminate\Support\Facades\DB;
 class AnswerService
 {
     const INVOICE_ACTIVE = ['paid', 'partial', 'sent', 'viewed'];
+
     const BILL_ACTIVE = ['paid', 'partial', 'received'];
 
     protected string $symbol;
 
     public function __construct()
     {
-        $this->symbol = \App\Models\Company::first()?->currency_symbol ?? 'S$';
+        $this->symbol = Company::first()?->currency_symbol ?? 'S$';
     }
 
     /**
@@ -35,7 +37,7 @@ class AnswerService
     public function answer(string $key, ?string $askedQuestion = null): array
     {
         $entry = QuestionCatalog::find($key);
-        $handler = 'handle' . str_replace('_', '', ucwords($key, '_'));
+        $handler = 'handle'.str_replace('_', '', ucwords($key, '_'));
 
         $payload = $this->{$handler}();
 
@@ -55,7 +57,7 @@ class AnswerService
                 'url' => route($entry['link']['route']),
             ]] : [],
         ], $payload, [
-            'explain' => $payload['explain'] ?? 'Computed live from your OpenBooks data at ' . now()->format('j M Y, g:i a') . '.',
+            'explain' => $payload['explain'] ?? 'Computed live from your OpenBooks data at '.now()->format('j M Y, g:i a').'.',
             'drill_available' => $this->supportsDrill($key),
             'followups' => $this->followupsFor($key),
         ]);
@@ -108,8 +110,11 @@ class AnswerService
             case 'ar_summary':
             case 'ar_overdue':
                 $q = Invoice::with('customer')->whereIn('status', self::INVOICE_ACTIVE)->where('due_amount', '>', 0);
-                if ($key === 'ar_overdue') $q->whereDate('due_date', '<', today());
+                if ($key === 'ar_overdue') {
+                    $q->whereDate('due_date', '<', today());
+                }
                 $rows = $q->orderBy('due_date')->limit($cap)->get();
+
                 return $this->drillPayload($entry, 'Open invoice documents behind the receivables figure', [
                     'columns' => ['Invoice', 'Customer', 'Issued', 'Due', 'Status', 'Amount due'],
                     'rows' => $rows->map(fn ($i) => [
@@ -123,8 +128,11 @@ class AnswerService
             case 'ap_summary':
             case 'ap_overdue':
                 $q = Bill::with('vendor')->whereIn('status', self::BILL_ACTIVE)->where('due_amount', '>', 0);
-                if ($key === 'ap_overdue') $q->whereDate('due_date', '<', today());
+                if ($key === 'ap_overdue') {
+                    $q->whereDate('due_date', '<', today());
+                }
                 $rows = $q->orderBy('due_date')->limit($cap)->get();
+
                 return $this->drillPayload($entry, 'Open bill documents behind the payables figure', [
                     'columns' => ['Bill', 'Vendor', 'Received', 'Due', 'Status', 'Amount due'],
                     'rows' => $rows->map(fn ($b) => [
@@ -144,6 +152,7 @@ class AnswerService
                     ->whereBetween('bill_date', $range)->limit($cap)->get()
                     ->map(fn ($b) => ['Expense', $b->bill_number, $b->vendor->name ?? '--', Carbon::parse($b->bill_date)->format('j M Y'), $this->money((float) $b->total)]);
                 $rows = $invoices->concat($bills)->take($cap)->all();
+
                 return $this->drillPayload($entry, 'Every invoice and bill counted in this month\'s profit', [
                     'columns' => ['Type', 'Number', 'Party', 'Date', 'Amount'],
                     'rows' => $rows,
@@ -153,12 +162,13 @@ class AnswerService
                 $rows = Transaction::with('category')->where('type', 'expense')
                     ->whereDate('transaction_date', '>=', now()->startOfYear())
                     ->orderByDesc('transaction_date')->limit($cap)->get();
+
                 return $this->drillPayload($entry, 'Individual expense transactions recorded this year', [
                     'columns' => ['Date', 'Category', 'Description', 'Amount'],
                     'rows' => $rows->map(fn ($t) => [
                         Carbon::parse($t->transaction_date)->format('j M Y'),
                         $t->category->name ?? 'Uncategorised',
-                        \Illuminate\Support\Str::limit($t->description ?? $t->reference_number ?? '--', 45),
+                        Str::limit($t->description ?? $t->reference_number ?? '--', 45),
                         $this->money((float) $t->amount),
                     ])->all(),
                 ], $rows->count());
@@ -172,6 +182,7 @@ class AnswerService
                     ->whereBetween('bill_date', $range)->where('tax_total', '>', 0)->limit($cap)->get()
                     ->map(fn ($b) => ['Input (purchase)', $b->bill_number, $b->vendor->name ?? '--', Carbon::parse($b->bill_date)->format('j M Y'), $this->money((float) $b->tax_total)]);
                 $rows = $out->concat($in)->take($cap)->all();
+
                 return $this->drillPayload($entry, 'Documents carrying GST this quarter', [
                     'columns' => ['GST side', 'Number', 'Party', 'Date', 'GST amount'],
                     'rows' => $rows,
@@ -181,6 +192,7 @@ class AnswerService
                 $since = now()->subMonthsNoOverflow(12)->startOfMonth();
                 $rows = Invoice::with('customer')->whereIn('status', self::INVOICE_ACTIVE)
                     ->whereDate('invoice_date', '>=', $since)->orderByDesc('total')->limit($cap)->get();
+
                 return $this->drillPayload($entry, 'Largest invoices in the last 12 months', [
                     'columns' => ['Invoice', 'Customer', 'Date', 'Total'],
                     'rows' => $rows->map(fn ($i) => [
@@ -198,11 +210,11 @@ class AnswerService
     {
         return [
             'intent' => $entry['key'],
-            'question' => 'Details behind: ' . $entry['label'],
+            'question' => 'Details behind: '.$entry['label'],
             'label' => $entry['label'],
             'category' => $entry['category'],
             'drill' => true,
-            'headline' => $headline . ' (' . $count . ' row(s), showing up to 25)',
+            'headline' => $headline.' ('.$count.' row(s), showing up to 25)',
             'figure' => null,
             'format' => 'currency',
             'compare' => null,
@@ -229,7 +241,7 @@ class AnswerService
         $negative = $accounts->filter(fn ($a) => (float) $a->current_balance < 0);
 
         return [
-            'headline' => $this->money($total) . ' total cash across ' . $accounts->count() . ' bank account' . ($accounts->count() === 1 ? '' : 's'),
+            'headline' => $this->money($total).' total cash across '.$accounts->count().' bank account'.($accounts->count() === 1 ? '' : 's'),
             'figure' => $total,
             'breakdown' => [
                 'columns' => ['Account', 'Type', 'Balance'],
@@ -243,12 +255,12 @@ class AnswerService
                 'values' => $accounts->map(fn ($a) => (float) $a->current_balance)->all(),
             ],
             'caveats' => $negative->isNotEmpty()
-                ? [$negative->count() . ' account(s) have a negative balance: ' . $negative->pluck('name')->implode(', ')]
+                ? [$negative->count().' account(s) have a negative balance: '.$negative->pluck('name')->implode(', ')]
                 : [],
             'answer' => $accounts->count() === 0
                 ? 'You have no bank accounts set up yet, so there is no cash position to report.'
-                : 'You currently hold ' . $this->money($total) . ' across ' . $accounts->count() . ' bank account(s).'
-                    . ($negative->isNotEmpty() ? ' Note that ' . $negative->pluck('name')->implode(' and ') . ' is in the negative.' : ''),
+                : 'You currently hold '.$this->money($total).' across '.$accounts->count().' bank account(s).'
+                    .($negative->isNotEmpty() ? ' Note that '.$negative->pluck('name')->implode(' and ').' is in the negative.' : ''),
         ];
     }
 
@@ -265,7 +277,7 @@ class AnswerService
         $allCount = Transaction::where('is_reconciled', false)->count();
 
         return [
-            'headline' => $allCount . ' unreconciled transaction(s), ' . $txns->count() . ' of them older than 30 days',
+            'headline' => $allCount.' unreconciled transaction(s), '.$txns->count().' of them older than 30 days',
             'figure' => $allCount,
             'format' => 'count',
             'breakdown' => $txns->isEmpty() ? null : [
@@ -273,15 +285,15 @@ class AnswerService
                 'rows' => $txns->map(fn ($t) => [
                     Carbon::parse($t->transaction_date)->format('j M Y'),
                     $t->bankAccount->name ?? '--',
-                    \Illuminate\Support\Str::limit($t->description ?? $t->reference_number ?? '--', 40),
+                    Str::limit($t->description ?? $t->reference_number ?? '--', 40),
                     $this->money((float) $t->amount),
                 ])->all(),
             ],
             'answer' => $allCount === 0
                 ? 'Great news — every transaction in your books is reconciled.'
-                : 'You have ' . $allCount . ' unreconciled transaction(s) totalling ' . $this->money($total)
-                    . ', of which ' . $txns->count() . ' are older than 30 days and should be reviewed first.',
-            'explain' => 'Counts transactions flagged is_reconciled = false; the list shows those dated on or before ' . $cutoff->format('j M Y') . '.',
+                : 'You have '.$allCount.' unreconciled transaction(s) totalling '.$this->money($total)
+                    .', of which '.$txns->count().' are older than 30 days and should be reviewed first.',
+            'explain' => 'Counts transactions flagged is_reconciled = false; the list shows those dated on or before '.$cutoff->format('j M Y').'.',
         ];
     }
 
@@ -302,7 +314,7 @@ class AnswerService
             ->sortByDesc('total')->values();
 
         return [
-            'headline' => $this->money($total) . ' outstanding across ' . $open->count() . ' unpaid invoice(s)',
+            'headline' => $this->money($total).' outstanding across '.$open->count().' unpaid invoice(s)',
             'figure' => $total,
             'breakdown' => $byCustomer->isEmpty() ? null : [
                 'columns' => ['Customer', 'Open invoices', 'Amount due'],
@@ -315,8 +327,8 @@ class AnswerService
             ],
             'answer' => $open->count() === 0
                 ? 'Nothing is outstanding — every issued invoice is fully paid.'
-                : 'Customers still owe you ' . $this->money($total) . ' across ' . $open->count() . ' invoice(s). '
-                    . ($byCustomer->isNotEmpty() ? 'The largest exposure is ' . $byCustomer[0]['name'] . ' at ' . $this->money($byCustomer[0]['total']) . '.' : ''),
+                : 'Customers still owe you '.$this->money($total).' across '.$open->count().' invoice(s). '
+                    .($byCustomer->isNotEmpty() ? 'The largest exposure is '.$byCustomer[0]['name'].' at '.$this->money($byCustomer[0]['total']).'.' : ''),
         ];
     }
 
@@ -329,7 +341,7 @@ class AnswerService
         $total = (float) $overdue->sum('due_amount');
 
         return [
-            'headline' => $overdue->count() ? $this->money($total) . ' overdue across ' . $overdue->count() . ' invoice(s)' : 'No overdue invoices',
+            'headline' => $overdue->count() ? $this->money($total).' overdue across '.$overdue->count().' invoice(s)' : 'No overdue invoices',
             'figure' => $total,
             'breakdown' => $overdue->isEmpty() ? null : [
                 'columns' => ['Invoice', 'Customer', 'Due date', 'Days late', 'Amount due'],
@@ -343,9 +355,9 @@ class AnswerService
             ],
             'answer' => $overdue->isEmpty()
                 ? 'Nothing is overdue — every open invoice is still within its payment terms.'
-                : $this->money($total) . ' is past due across ' . $overdue->count() . ' invoice(s). Oldest: '
-                    . $overdue->first()->invoice_number . ' (' . $overdue->first()->customer?->name . '), '
-                    . $today->diffInDays(Carbon::parse($overdue->first()->due_date)) . ' days late.',
+                : $this->money($total).' is past due across '.$overdue->count().' invoice(s). Oldest: '
+                    .$overdue->first()->invoice_number.' ('.$overdue->first()->customer?->name.'), '
+                    .$today->diffInDays(Carbon::parse($overdue->first()->due_date)).' days late.',
         ];
     }
 
@@ -358,14 +370,18 @@ class AnswerService
         $buckets = ['Next 7 days' => 0.0, '8-14 days' => 0.0, '15-30 days' => 0.0];
         foreach ($open as $i) {
             $days = $today->diffInDays(Carbon::parse($i->due_date));
-            if ($days <= 7) $buckets['Next 7 days'] += (float) $i->due_amount;
-            elseif ($days <= 14) $buckets['8-14 days'] += (float) $i->due_amount;
-            else $buckets['15-30 days'] += (float) $i->due_amount;
+            if ($days <= 7) {
+                $buckets['Next 7 days'] += (float) $i->due_amount;
+            } elseif ($days <= 14) {
+                $buckets['8-14 days'] += (float) $i->due_amount;
+            } else {
+                $buckets['15-30 days'] += (float) $i->due_amount;
+            }
         }
         $total = array_sum($buckets);
 
         return [
-            'headline' => $this->money($total) . ' expected to collect in the next 30 days',
+            'headline' => $this->money($total).' expected to collect in the next 30 days',
             'figure' => $total,
             'breakdown' => [
                 'columns' => ['Window', 'Expected'],
@@ -373,8 +389,8 @@ class AnswerService
             ],
             'chart' => ['type' => 'bar', 'labels' => array_keys($buckets), 'values' => array_values($buckets)],
             'answer' => $total > 0
-                ? 'Based on invoice due dates, ' . $this->money($total) . ' should land in your bank over the next 30 days — '
-                    . $this->money($buckets['Next 7 days']) . ' of it within a week.'
+                ? 'Based on invoice due dates, '.$this->money($total).' should land in your bank over the next 30 days — '
+                    .$this->money($buckets['Next 7 days']).' of it within a week.'
                 : 'No invoices fall due in the next 30 days, so nothing is scheduled to come in.',
             'explain' => 'Sums due_amount of open invoices by due_date window; assumes customers pay exactly on the due date.',
         ];
@@ -391,7 +407,7 @@ class AnswerService
         $dso = $revenue90 > 0 ? (int) round(($arBalance / $revenue90) * 90) : null;
 
         return [
-            'headline' => $dso === null ? 'Not enough invoicing history to estimate' : 'Customers take about ' . $dso . ' days to pay',
+            'headline' => $dso === null ? 'Not enough invoicing history to estimate' : 'Customers take about '.$dso.' days to pay',
             'figure' => $dso,
             'format' => 'days',
             'breakdown' => [
@@ -404,8 +420,8 @@ class AnswerService
             ],
             'answer' => $dso === null
                 ? 'There is not enough recent invoicing activity to estimate collection speed yet.'
-                : 'On average it takes customers around ' . $dso . ' days to pay you. '
-                    . ($dso > 30 ? 'That is slower than typical 30-day terms — worth tightening follow-ups.' : 'That is within healthy 30-day terms.'),
+                : 'On average it takes customers around '.$dso.' days to pay you. '
+                    .($dso > 30 ? 'That is slower than typical 30-day terms — worth tightening follow-ups.' : 'That is within healthy 30-day terms.'),
             'explain' => 'Uses the standard DSO formula: (accounts receivable ÷ revenue in the last 90 days) × 90.',
         ];
     }
@@ -427,7 +443,7 @@ class AnswerService
             ->sortByDesc('total')->values();
 
         return [
-            'headline' => $this->money($total) . ' payable across ' . $open->count() . ' unpaid bill(s)',
+            'headline' => $this->money($total).' payable across '.$open->count().' unpaid bill(s)',
             'figure' => $total,
             'breakdown' => $byVendor->isEmpty() ? null : [
                 'columns' => ['Vendor', 'Open bills', 'Amount due'],
@@ -440,8 +456,8 @@ class AnswerService
             ],
             'answer' => $open->count() === 0
                 ? 'You have no unpaid bills — nothing is owed to vendors right now.'
-                : 'You owe vendors ' . $this->money($total) . ' across ' . $open->count() . ' bill(s). '
-                    . ($byVendor->isNotEmpty() ? 'Largest payable: ' . $byVendor[0]['name'] . ' at ' . $this->money($byVendor[0]['total']) . '.' : ''),
+                : 'You owe vendors '.$this->money($total).' across '.$open->count().' bill(s). '
+                    .($byVendor->isNotEmpty() ? 'Largest payable: '.$byVendor[0]['name'].' at '.$this->money($byVendor[0]['total']).'.' : ''),
         ];
     }
 
@@ -457,7 +473,7 @@ class AnswerService
 
         $rows = $overdue->map(fn ($b) => [
             $b->bill_number, $b->vendor->name ?? '--', Carbon::parse($b->due_date)->format('j M Y'),
-            'Overdue ' . $today->diffInDays(Carbon::parse($b->due_date)) . 'd', $this->money((float) $b->due_amount),
+            'Overdue '.$today->diffInDays(Carbon::parse($b->due_date)).'d', $this->money((float) $b->due_amount),
         ])->concat($dueSoon->map(fn ($b) => [
             $b->bill_number, $b->vendor->name ?? '--', Carbon::parse($b->due_date)->format('j M Y'),
             'Due soon', $this->money((float) $b->due_amount),
@@ -466,7 +482,7 @@ class AnswerService
         $total = (float) $overdue->sum('due_amount') + (float) $dueSoon->sum('due_amount');
 
         return [
-            'headline' => $this->money((float) $overdue->sum('due_amount')) . ' overdue + ' . $this->money((float) $dueSoon->sum('due_amount')) . ' due this week',
+            'headline' => $this->money((float) $overdue->sum('due_amount')).' overdue + '.$this->money((float) $dueSoon->sum('due_amount')).' due this week',
             'figure' => $total,
             'breakdown' => empty($rows) ? null : [
                 'columns' => ['Bill', 'Vendor', 'Due date', 'State', 'Amount due'],
@@ -474,8 +490,8 @@ class AnswerService
             ],
             'answer' => empty($rows)
                 ? 'Nothing is overdue and no bills fall due this week — your payables are clear.'
-                : 'You need ' . $this->money($total) . ' for payables: ' . $overdue->count() . ' overdue bill(s) and '
-                    . $dueSoon->count() . ' due within 7 days.',
+                : 'You need '.$this->money($total).' for payables: '.$overdue->count().' overdue bill(s) and '
+                    .$dueSoon->count().' due within 7 days.',
         ];
     }
 
@@ -489,6 +505,7 @@ class AnswerService
         $calc = function (array $range) {
             $income = (float) Invoice::whereIn('status', self::INVOICE_ACTIVE)->whereBetween('invoice_date', $range)->sum('total');
             $expense = (float) Bill::whereIn('status', self::BILL_ACTIVE)->whereBetween('bill_date', $range)->sum('total');
+
             return [$income, $expense, $income - $expense];
         };
 
@@ -498,12 +515,12 @@ class AnswerService
         $delta = $pNet != 0 ? round((($net - $pNet) / abs($pNet)) * 100, 1) : null;
 
         return [
-            'headline' => $this->money($net) . ' net profit this month',
+            'headline' => $this->money($net).' net profit this month',
             'figure' => $net,
             'compare' => [
-                'label' => 'vs last month (' . $this->money($pNet) . ')',
+                'label' => 'vs last month ('.$this->money($pNet).')',
                 'delta_pct' => $delta,
-                'text' => $delta === null ? 'no profit last month to compare' : ($delta >= 0 ? 'up ' . abs($delta) . '%' : 'down ' . abs($delta) . '%') . ' vs last month',
+                'text' => $delta === null ? 'no profit last month to compare' : ($delta >= 0 ? 'up '.abs($delta).'%' : 'down '.abs($delta).'%').' vs last month',
             ],
             'breakdown' => [
                 'columns' => ['Line', 'This month', 'Last month'],
@@ -513,8 +530,8 @@ class AnswerService
                     ['Net profit', $this->money($net), $this->money($pNet)],
                 ],
             ],
-            'answer' => 'This month you invoiced ' . $this->money($inc) . ' against ' . $this->money($exp) . ' of bills, leaving '
-                . $this->money($net) . ' net profit' . ($delta !== null ? ' — ' . ($delta >= 0 ? 'up' : 'down') . ' ' . abs($delta) . '% on last month.' : '.'),
+            'answer' => 'This month you invoiced '.$this->money($inc).' against '.$this->money($exp).' of bills, leaving '
+                .$this->money($net).' net profit'.($delta !== null ? ' — '.($delta >= 0 ? 'up' : 'down').' '.abs($delta).'% on last month.' : '.'),
             'explain' => 'Accrual view: invoices issued this month minus bills received this month (drafts excluded), same basis as the Profit & Loss report.',
         ];
     }
@@ -536,20 +553,20 @@ class AnswerService
         $change = $first > 0 ? round((($last - $first) / $first) * 100, 1) : null;
 
         return [
-            'headline' => $this->money($last) . ' invoiced in ' . $months[5]['label'],
+            'headline' => $this->money($last).' invoiced in '.$months[5]['label'],
             'figure' => $last,
             'compare' => $change === null ? null : [
-                'label' => 'vs ' . $months[0]['label'],
+                'label' => 'vs '.$months[0]['label'],
                 'delta_pct' => $change,
-                'text' => ($change >= 0 ? 'up ' : 'down ') . abs($change) . '% over 6 months',
+                'text' => ($change >= 0 ? 'up ' : 'down ').abs($change).'% over 6 months',
             ],
             'breakdown' => [
                 'columns' => ['Month', 'Invoiced'],
                 'rows' => array_map(fn ($m) => [$m['label'], $this->money($m['value'])], $months),
             ],
             'chart' => ['type' => 'line', 'labels' => array_column($months, 'label'), 'values' => array_column($months, 'value')],
-            'answer' => 'Revenue moved from ' . $this->money($first) . ' in ' . $months[0]['label'] . ' to ' . $this->money($last)
-                . ' in ' . $months[5]['label'] . ($change !== null ? ' (' . ($change >= 0 ? '+' : '-') . abs($change) . '%).' : '.'),
+            'answer' => 'Revenue moved from '.$this->money($first).' in '.$months[0]['label'].' to '.$this->money($last)
+                .' in '.$months[5]['label'].($change !== null ? ' ('.($change >= 0 ? '+' : '-').abs($change).'%).' : '.'),
         ];
     }
 
@@ -569,13 +586,13 @@ class AnswerService
         $totalAll = (float) Invoice::whereIn('status', self::INVOICE_ACTIVE)->whereDate('invoice_date', '>=', $since)->sum('total');
 
         return [
-            'headline' => $rows->isEmpty() ? 'No invoiced revenue in the last 12 months' : $rows[0]->name . ' is your top customer',
+            'headline' => $rows->isEmpty() ? 'No invoiced revenue in the last 12 months' : $rows[0]->name.' is your top customer',
             'figure' => $rows->isEmpty() ? null : (float) $rows[0]->revenue,
             'breakdown' => $rows->isEmpty() ? null : [
                 'columns' => ['Customer', 'Invoices', 'Revenue', 'Share'],
                 'rows' => $rows->map(fn ($r) => [
                     $r->name, $r->invoices_count, $this->money((float) $r->revenue),
-                    $totalAll > 0 ? round(((float) $r->revenue / $totalAll) * 100, 1) . '%' : '--',
+                    $totalAll > 0 ? round(((float) $r->revenue / $totalAll) * 100, 1).'%' : '--',
                 ])->all(),
             ],
             'chart' => $rows->isEmpty() ? null : [
@@ -583,8 +600,8 @@ class AnswerService
             ],
             'answer' => $rows->isEmpty()
                 ? 'There is no invoiced revenue in the last 12 months to rank customers by.'
-                : 'Over the last 12 months your top customer is ' . $rows[0]->name . ' with ' . $this->money((float) $rows[0]->revenue)
-                    . ($totalAll > 0 ? ' (' . round(((float) $rows[0]->revenue / $totalAll) * 100, 1) . '% of revenue).' : '.'),
+                : 'Over the last 12 months your top customer is '.$rows[0]->name.' with '.$this->money((float) $rows[0]->revenue)
+                    .($totalAll > 0 ? ' ('.round(((float) $rows[0]->revenue / $totalAll) * 100, 1).'% of revenue).' : '.'),
         ];
     }
 
@@ -603,7 +620,7 @@ class AnswerService
             ->get();
 
         return [
-            'headline' => $rows->isEmpty() ? 'No sales line items in the last 12 months' : $rows[0]->name . ' leads your sales',
+            'headline' => $rows->isEmpty() ? 'No sales line items in the last 12 months' : $rows[0]->name.' leads your sales',
             'figure' => $rows->isEmpty() ? null : (float) $rows[0]->revenue,
             'breakdown' => $rows->isEmpty() ? null : [
                 'columns' => ['Product / Service', 'Qty sold', 'Revenue'],
@@ -614,7 +631,7 @@ class AnswerService
             ],
             'answer' => $rows->isEmpty()
                 ? 'No invoice line items in the last 12 months, so there is no best-seller yet.'
-                : 'Your best seller over the last 12 months is ' . $rows[0]->name . ' with ' . $this->money((float) $rows[0]->revenue) . ' invoiced.',
+                : 'Your best seller over the last 12 months is '.$rows[0]->name.' with '.$this->money((float) $rows[0]->revenue).' invoiced.',
         ];
     }
 
@@ -632,13 +649,13 @@ class AnswerService
             ->sortByDesc('total')->values();
 
         return [
-            'headline' => $this->money($total) . ' spent since 1 Jan ' . now()->format('Y'),
+            'headline' => $this->money($total).' spent since 1 Jan '.now()->format('Y'),
             'figure' => $total,
             'breakdown' => $byCat->isEmpty() ? null : [
                 'columns' => ['Category', 'Amount', 'Share'],
                 'rows' => $byCat->take(10)->map(fn ($c) => [
                     $c['name'], $this->money($c['total']),
-                    $total > 0 ? round(($c['total'] / $total) * 100, 1) . '%' : '--',
+                    $total > 0 ? round(($c['total'] / $total) * 100, 1).'%' : '--',
                 ])->all(),
             ],
             'chart' => $byCat->isEmpty() ? null : [
@@ -646,8 +663,8 @@ class AnswerService
             ],
             'answer' => $byCat->isEmpty()
                 ? 'No expense transactions recorded this year yet.'
-                : 'Since January you have spent ' . $this->money($total) . '. Biggest bucket: ' . $byCat[0]['name'] . ' at '
-                    . $this->money($byCat[0]['total']) . ($total > 0 ? ' (' . round(($byCat[0]['total'] / $total) * 100, 1) . '% of spend).' : '.'),
+                : 'Since January you have spent '.$this->money($total).'. Biggest bucket: '.$byCat[0]['name'].' at '
+                    .$this->money($byCat[0]['total']).($total > 0 ? ' ('.round(($byCat[0]['total'] / $total) * 100, 1).'% of spend).' : '.'),
             'explain' => 'Cash-basis expense transactions recorded this year, grouped by category (bills are not included here).',
         ];
     }
@@ -664,7 +681,7 @@ class AnswerService
         $net = $output - $input;
 
         return [
-            'headline' => $this->money(abs($net)) . ($net >= 0 ? ' payable to IRAS' : ' refundable / credit carried forward') . ' for Q' . now()->quarter,
+            'headline' => $this->money(abs($net)).($net >= 0 ? ' payable to IRAS' : ' refundable / credit carried forward').' for Q'.now()->quarter,
             'figure' => $net,
             'breakdown' => [
                 'columns' => ['GST line', 'Amount'],
@@ -674,8 +691,8 @@ class AnswerService
                     ['Net position', $this->money($net)],
                 ],
             ],
-            'answer' => 'For the current quarter you collected ' . $this->money($output) . ' of GST and paid ' . $this->money($input)
-                . ', leaving ' . $this->money(abs($net)) . ($net >= 0 ? ' to remit to IRAS.' : ' as input-tax credit.'),
+            'answer' => 'For the current quarter you collected '.$this->money($output).' of GST and paid '.$this->money($input)
+                .', leaving '.$this->money(abs($net)).($net >= 0 ? ' to remit to IRAS.' : ' as input-tax credit.'),
             'explain' => 'Quarter-to-date GST on active invoices (output) vs active bills (input), same basis as the GST F5 report.',
         ];
     }
@@ -689,7 +706,7 @@ class AnswerService
             ->orderBy('stock_quantity')->get();
 
         return [
-            'headline' => $items->count() ? $items->count() . ' item(s) at or below reorder level' : 'All stock levels are healthy',
+            'headline' => $items->count() ? $items->count().' item(s) at or below reorder level' : 'All stock levels are healthy',
             'figure' => $items->count(),
             'format' => 'count',
             'breakdown' => $items->isEmpty() ? null : [
@@ -698,7 +715,7 @@ class AnswerService
             ],
             'answer' => $items->isEmpty()
                 ? 'No tracked items are below their reorder level right now.'
-                : $items->count() . ' item(s) need reordering, lowest being ' . $items->first()->name . ' with ' . (float) $items->first()->stock_quantity . ' left.',
+                : $items->count().' item(s) need reordering, lowest being '.$items->first()->name.' with '.(float) $items->first()->stock_quantity.' left.',
         ];
     }
 
@@ -710,8 +727,8 @@ class AnswerService
 
         if ($budgets->isEmpty()) {
             return [
-                'headline' => 'No budget set for ' . now()->format('F Y'),
-                'answer' => 'You have not set a budget for ' . now()->format('F Y') . ', so there is nothing to compare spending against.',
+                'headline' => 'No budget set for '.now()->format('F Y'),
+                'answer' => 'You have not set a budget for '.now()->format('F Y').', so there is nothing to compare spending against.',
             ];
         }
 
@@ -721,19 +738,21 @@ class AnswerService
             $actual = (float) Transaction::where('type', 'expense')->where('category_id', $b->category_id)
                 ->whereYear('transaction_date', $year)->whereMonth('transaction_date', $month)->sum('amount');
             $budget = (float) $b->amount;
-            $rows[] = [$b->category->name ?? 'Category #' . $b->category_id, $this->money($budget), $this->money($actual),
-                $actual > $budget ? 'OVER by ' . $this->money($actual - $budget) : 'under by ' . $this->money($budget - $actual)];
-            if ($actual > $budget) $over++;
+            $rows[] = [$b->category->name ?? 'Category #'.$b->category_id, $this->money($budget), $this->money($actual),
+                $actual > $budget ? 'OVER by '.$this->money($actual - $budget) : 'under by '.$this->money($budget - $actual)];
+            if ($actual > $budget) {
+                $over++;
+            }
         }
 
         return [
-            'headline' => $over ? $over . ' of ' . $budgets->count() . ' budget(s) overspent this month' : 'All budgets on track this month',
+            'headline' => $over ? $over.' of '.$budgets->count().' budget(s) overspent this month' : 'All budgets on track this month',
             'figure' => $over,
             'format' => 'count',
             'breakdown' => ['columns' => ['Category', 'Budget', 'Actual', 'Variance'], 'rows' => $rows],
             'answer' => $over
-                ? $over . ' categor(ies) have overspent their ' . now()->format('F') . ' budget — see the variance table.'
-                : 'Every budgeted category is within its limit for ' . now()->format('F Y') . '.',
+                ? $over.' categor(ies) have overspent their '.now()->format('F').' budget — see the variance table.'
+                : 'Every budgeted category is within its limit for '.now()->format('F Y').'.',
         ];
     }
 
@@ -747,7 +766,7 @@ class AnswerService
         $total = (float) $templates->sum('total');
 
         return [
-            'headline' => $templates->count() ? $templates->count() . ' recurring doc(s) will generate by ' . $week->format('j M') . ' (' . $this->money($total) . ')' : 'Nothing recurring due next week',
+            'headline' => $templates->count() ? $templates->count().' recurring doc(s) will generate by '.$week->format('j M').' ('.$this->money($total).')' : 'Nothing recurring due next week',
             'figure' => $templates->count(),
             'format' => 'count',
             'breakdown' => $templates->isEmpty() ? null : [
@@ -761,7 +780,7 @@ class AnswerService
             ],
             'answer' => $templates->isEmpty()
                 ? 'No recurring invoices or bills are scheduled to generate in the next 7 days.'
-                : $templates->count() . ' recurring document(s) worth ' . $this->money($total) . ' will auto-generate within 7 days.',
+                : $templates->count().' recurring document(s) worth '.$this->money($total).' will auto-generate within 7 days.',
         ];
     }
 
@@ -769,6 +788,6 @@ class AnswerService
 
     protected function money(float $value): string
     {
-        return $this->symbol . number_format($value, 2);
+        return $this->symbol.number_format($value, 2);
     }
 }

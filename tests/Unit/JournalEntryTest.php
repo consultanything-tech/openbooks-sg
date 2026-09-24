@@ -13,14 +13,14 @@ class JournalEntryTest extends TestCase
     public function test_balanced_entry_is_valid(): void
     {
         $entry = JournalEntry::create([
-            'entry_number' => 'JE-TEST-' . Str::random(8),
+            'entry_number' => 'JE-TEST-'.Str::random(8),
             'entry_date' => '2026-01-15',
             'description' => 'Balanced test entry',
             'is_posted' => false,
         ]);
 
         $debitAccount = Account::create([
-            'code' => '1000-' . Str::random(4),
+            'code' => '1000-'.Str::random(4),
             'name' => 'Test Cash Account',
             'type' => 'asset',
             'balance' => 0,
@@ -28,7 +28,7 @@ class JournalEntryTest extends TestCase
         ]);
 
         $creditAccount = Account::create([
-            'code' => '4000-' . Str::random(4),
+            'code' => '4000-'.Str::random(4),
             'name' => 'Test Revenue Account',
             'type' => 'revenue',
             'balance' => 0,
@@ -59,14 +59,14 @@ class JournalEntryTest extends TestCase
     public function test_unbalanced_entry_is_invalid(): void
     {
         $entry = JournalEntry::create([
-            'entry_number' => 'JE-UNBAL-' . Str::random(8),
+            'entry_number' => 'JE-UNBAL-'.Str::random(8),
             'entry_date' => '2026-01-15',
             'description' => 'Unbalanced test entry',
             'is_posted' => false,
         ]);
 
         $debitAccount = Account::create([
-            'code' => '1100-' . Str::random(4),
+            'code' => '1100-'.Str::random(4),
             'name' => 'Test Debit Account',
             'type' => 'asset',
             'balance' => 0,
@@ -74,7 +74,7 @@ class JournalEntryTest extends TestCase
         ]);
 
         $creditAccount = Account::create([
-            'code' => '4100-' . Str::random(4),
+            'code' => '4100-'.Str::random(4),
             'name' => 'Test Credit Account',
             'type' => 'revenue',
             'balance' => 0,
@@ -103,7 +103,7 @@ class JournalEntryTest extends TestCase
     public function test_account_balance_calculation(): void
     {
         $account = Account::create([
-            'code' => '1200-' . Str::random(4),
+            'code' => '1200-'.Str::random(4),
             'name' => 'Balance Calc Test Account',
             'type' => 'asset',
             'balance' => 0,
@@ -111,14 +111,14 @@ class JournalEntryTest extends TestCase
         ]);
 
         $entry1 = JournalEntry::create([
-            'entry_number' => 'JE-BAL1-' . Str::random(8),
+            'entry_number' => 'JE-BAL1-'.Str::random(8),
             'entry_date' => '2026-01-15',
             'description' => 'Balance test entry 1',
             'is_posted' => true,
         ]);
 
         $entry2 = JournalEntry::create([
-            'entry_number' => 'JE-BAL2-' . Str::random(8),
+            'entry_number' => 'JE-BAL2-'.Str::random(8),
             'entry_date' => '2026-01-20',
             'description' => 'Balance test entry 2',
             'is_posted' => true,

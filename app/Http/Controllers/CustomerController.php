@@ -4,18 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Customer;
+use App\Traits\HandlesBulkActions;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 
 class CustomerController extends Controller
 {
-    use \App\Traits\LogsActivity;
-    use \App\Traits\HandlesBulkActions;
+    use HandlesBulkActions;
+    use LogsActivity;
 
-    protected function bulkModelClass(): string { return \App\Models\Customer::class; }
-    protected function bulkIndexRoute(): string { return 'customers.index'; }
-    protected function bulkRestoreRouteName(): string { return 'customers.bulk_restore'; }
+    protected function bulkModelClass(): string
+    {
+        return Customer::class;
+    }
+
+    protected function bulkIndexRoute(): string
+    {
+        return 'customers.index';
+    }
+
+    protected function bulkRestoreRouteName(): string
+    {
+        return 'customers.bulk_restore';
+    }
+
     public function index()
     {
         $company = Company::first() ?? new Company(['currency_symbol' => 'S$']);
@@ -84,7 +98,7 @@ class CustomerController extends Controller
 
         return new Response($csv, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -104,11 +118,12 @@ class CustomerController extends Controller
         $header = fgetcsv($handle, 0, ',');
         if ($header === false) {
             fclose($handle);
+
             return redirect()->route('customers.index')->with('error', 'The CSV file is empty or malformed.');
         }
 
         // Normalize header names
-        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
 
         $imported = 0;
         $skipped = 0;
@@ -126,6 +141,7 @@ class CustomerController extends Controller
                 $data = array_combine($header, array_pad($row, count($header), ''));
                 if ($data === false) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -134,6 +150,7 @@ class CustomerController extends Controller
 
                 if (empty($name)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -147,7 +164,7 @@ class CustomerController extends Controller
                     'country' => trim($data['country'] ?? ''),
                 ];
 
-                if (!empty($email)) {
+                if (! empty($email)) {
                     Customer::updateOrCreate(
                         ['email' => $email],
                         $attributes

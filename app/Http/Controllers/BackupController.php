@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\LogsActivity;
 use Illuminate\Support\Facades\Artisan;
 
 class BackupController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     public function index()
     {
@@ -14,8 +15,8 @@ class BackupController extends Controller
         $backups = [];
 
         if (is_dir($backupDir)) {
-            $files = glob($backupDir . '/openbooks-backup-*.sql.gz');
-            usort($files, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            $files = glob($backupDir.'/openbooks-backup-*.sql.gz');
+            usort($files, fn ($a, $b) => filemtime($b) <=> filemtime($a));
 
             foreach ($files as $file) {
                 $backups[] = [
@@ -36,6 +37,7 @@ class BackupController extends Controller
 
         if ($exitCode === 0) {
             $this->logActivity('backup', 'Created database backup via web interface', 'System');
+
             return redirect()->route('settings.backups')->with('success', $output ?: 'Backup created successfully.');
         }
 
@@ -46,13 +48,13 @@ class BackupController extends Controller
     {
         $filename = basename($filename); // prevent path traversal
 
-        if (!$this->isValidBackupFilename($filename)) {
+        if (! $this->isValidBackupFilename($filename)) {
             abort(400, 'Invalid backup filename.');
         }
 
-        $filepath = storage_path('app/backups/' . $filename);
+        $filepath = storage_path('app/backups/'.$filename);
 
-        if (!file_exists($filepath)) {
+        if (! file_exists($filepath)) {
             abort(404, 'Backup file not found.');
         }
 
@@ -65,13 +67,13 @@ class BackupController extends Controller
     {
         $filename = basename($filename); // prevent path traversal
 
-        if (!$this->isValidBackupFilename($filename)) {
+        if (! $this->isValidBackupFilename($filename)) {
             return redirect()->route('settings.backups')->with('error', 'Invalid backup filename.');
         }
 
-        $filepath = storage_path('app/backups/' . $filename);
+        $filepath = storage_path('app/backups/'.$filename);
 
-        if (!file_exists($filepath)) {
+        if (! file_exists($filepath)) {
             return redirect()->route('settings.backups')->with('error', 'Backup file not found.');
         }
 
@@ -95,6 +97,7 @@ class BackupController extends Controller
             $bytes /= 1024;
             $i++;
         }
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 }

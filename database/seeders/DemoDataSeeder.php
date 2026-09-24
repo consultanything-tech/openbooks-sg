@@ -43,6 +43,7 @@ class DemoDataSeeder extends Seeder
         // Skip if demo data already exists
         if (Company::where('name', 'Acme Pte Ltd')->exists()) {
             $this->command->warn('Demo data already exists (Acme Pte Ltd found). Skipping.');
+
             return;
         }
 
@@ -331,7 +332,7 @@ class DemoDataSeeder extends Seeder
             $itemCount = rand(1, 3);
             $selectedItems = [];
             $shuffledKeys = array_rand($items, min($itemCount, count($items)));
-            if (!is_array($shuffledKeys)) {
+            if (! is_array($shuffledKeys)) {
                 $shuffledKeys = [$shuffledKeys];
             }
             foreach ($shuffledKeys as $key) {
@@ -364,7 +365,7 @@ class DemoDataSeeder extends Seeder
             }
 
             $invoice = Invoice::create([
-                'invoice_number' => 'INV-2026-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'invoice_number' => 'INV-2026-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'customer_id' => $customer->id,
                 'invoice_date' => $invoiceDate,
                 'due_date' => $dueDate,
@@ -429,7 +430,7 @@ class DemoDataSeeder extends Seeder
 
             // Pick 1-2 random items
             $shuffledKeys = array_rand($items, min(rand(1, 2), count($items)));
-            if (!is_array($shuffledKeys)) {
+            if (! is_array($shuffledKeys)) {
                 $shuffledKeys = [$shuffledKeys];
             }
 
@@ -455,7 +456,7 @@ class DemoDataSeeder extends Seeder
             }
 
             $bill = Bill::create([
-                'bill_number' => 'BILL-2026-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'bill_number' => 'BILL-2026-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'vendor_id' => $vendor->id,
                 'bill_date' => $billDate,
                 'due_date' => $dueDate,
@@ -510,7 +511,7 @@ class DemoDataSeeder extends Seeder
             $quoteDate = now()->subDays(rand(3, 60));
 
             $shuffledKeys = array_rand($items, min(rand(1, 3), count($items)));
-            if (!is_array($shuffledKeys)) {
+            if (! is_array($shuffledKeys)) {
                 $shuffledKeys = [$shuffledKeys];
             }
 
@@ -530,7 +531,7 @@ class DemoDataSeeder extends Seeder
             $total = round($subtotal + $taxTotal, 2);
 
             $quote = Quote::create([
-                'quote_number' => 'QTN-2026-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'quote_number' => 'QTN-2026-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'customer_id' => $customer->id,
                 'quote_date' => $quoteDate,
                 'expiry_date' => $quoteDate->copy()->addDays(30),
@@ -571,7 +572,7 @@ class DemoDataSeeder extends Seeder
         $expenseCategories = ['Cloud & Hosting', 'Office Rent', 'Utilities & Telecom', 'Marketing', 'Professional Fees'];
 
         // 12 income transactions linked to paid/partial invoices
-        $paidInvoices = array_filter($invoices, fn($inv) => in_array($inv->status, ['paid', 'partial']));
+        $paidInvoices = array_filter($invoices, fn ($inv) => in_array($inv->status, ['paid', 'partial']));
         $paidInvoices = array_values($paidInvoices);
 
         for ($i = 0; $i < 12 && $i < count($paidInvoices); $i++) {
@@ -586,9 +587,9 @@ class DemoDataSeeder extends Seeder
                 'category_id' => $categories[$catName] ?? null,
                 'amount' => $inv->paid_amount,
                 'payment_method' => $paymentMethods[$i % count($paymentMethods)],
-                'reference_number' => 'TXN-INC-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'reference_number' => 'TXN-INC-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                 'transaction_date' => $inv->invoice_date->copy()->addDays(rand(1, 15)),
-                'description' => 'Payment received for ' . $inv->invoice_number,
+                'description' => 'Payment received for '.$inv->invoice_number,
             ]);
         }
 
@@ -617,7 +618,7 @@ class DemoDataSeeder extends Seeder
                 'category_id' => $categories[$catName] ?? null,
                 'amount' => $expenseAmounts[$i],
                 'payment_method' => $paymentMethods[$i % count($paymentMethods)],
-                'reference_number' => 'TXN-EXP-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'reference_number' => 'TXN-EXP-'.str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                 'transaction_date' => now()->subDays(rand(1, 60)),
                 'description' => $expenseDescs[$i],
             ]);
@@ -636,7 +637,7 @@ class DemoDataSeeder extends Seeder
         ];
 
         // Use paid invoices for credit notes
-        $paidInvoices = array_values(array_filter($invoices, fn($inv) => $inv->status === 'paid'));
+        $paidInvoices = array_values(array_filter($invoices, fn ($inv) => $inv->status === 'paid'));
 
         for ($i = 0; $i < 5 && $i < count($paidInvoices); $i++) {
             $invoice = $paidInvoices[$i];
@@ -649,7 +650,7 @@ class DemoDataSeeder extends Seeder
             $total = round($subtotal + $taxTotal, 2);
 
             $cn = CreditNote::create([
-                'credit_note_number' => 'CN-2026-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT),
+                'credit_note_number' => 'CN-2026-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT),
                 'invoice_id' => $invoice->id,
                 'customer_id' => $invoice->customer_id,
                 'credit_note_date' => $invoice->invoice_date->copy()->addDays(rand(5, 20)),
@@ -693,7 +694,7 @@ class DemoDataSeeder extends Seeder
         $accountIds = [];
         foreach ($accounts as $acc) {
             $existing = Account::where('code', $acc['code'])->first();
-            if (!$existing) {
+            if (! $existing) {
                 $existing = Account::create(array_merge($acc, ['balance' => 0, 'is_system' => false, 'is_active' => true]));
             }
             $accountIds[$acc['code']] = $existing->id;
@@ -865,7 +866,7 @@ class DemoDataSeeder extends Seeder
 
         foreach ($budgetsData as $data) {
             $catId = $categories[$data['category']] ?? null;
-            if (!$catId) {
+            if (! $catId) {
                 continue;
             }
 

@@ -109,12 +109,12 @@ class BalanceSheetTest extends TestCase
         ]);
 
         // Observer already posted the accrual on creation.
-        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number . '-ACCRUAL')->count());
+        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number.'-ACCRUAL')->count());
 
         $this->artisan('ledger:backfill')->assertSuccessful();
         $this->artisan('ledger:backfill')->assertSuccessful();
 
         // Still exactly one accrual entry — backfill never double-posts.
-        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number . '-ACCRUAL')->count());
+        $this->assertSame(1, JournalEntry::where('reference', $invoice->invoice_number.'-ACCRUAL')->count());
     }
 }

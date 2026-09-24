@@ -12,7 +12,7 @@ class ApiCompanyController extends Controller
     {
         $company = Company::first();
 
-        if (!$company) {
+        if (! $company) {
             return response()->json(['message' => 'Company not found.'], 404);
         }
 

@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RecurringTemplate extends Model
 {
@@ -58,6 +58,7 @@ class RecurringTemplate extends Model
         if ($this->type === 'invoice') {
             return $this->customer->name ?? 'N/A';
         }
+
         return $this->vendor->name ?? 'N/A';
     }
 }

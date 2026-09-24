@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class BackfillLedger extends Command
 {
     protected $signature = 'ledger:backfill {--cash : Also backfill cash movements (opening balances, transactions, transfers)}';
+
     protected $description = 'Post balanced journal entries for invoices/bills (and optionally cash) created before the ledger observers existed (idempotent)';
 
     public function handle(JournalService $journal): int

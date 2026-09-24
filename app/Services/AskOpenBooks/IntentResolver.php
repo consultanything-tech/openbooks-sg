@@ -10,9 +10,7 @@ namespace App\Services\AskOpenBooks;
  */
 class IntentResolver
 {
-    public function __construct(protected LlmClient $llm)
-    {
-    }
+    public function __construct(protected LlmClient $llm) {}
 
     public function resolve(string $question): ?string
     {
@@ -21,19 +19,19 @@ class IntentResolver
             return $keyword;
         }
 
-        if (!$this->llm->isConfigured()) {
+        if (! $this->llm->isConfigured()) {
             return null;
         }
 
         $enum = collect(QuestionCatalog::all())
-            ->map(fn ($q) => $q['key'] . ': ' . $q['label'])
+            ->map(fn ($q) => $q['key'].': '.$q['label'])
             ->implode("\n");
 
         $system = 'You are the intent router for OpenBooks, a Singapore accounting app. '
-            . 'Classify the user question into exactly one intent from the list below. '
-            . 'If none fits, return {"key": null}. Reply with strict JSON only, no prose.';
+            .'Classify the user question into exactly one intent from the list below. '
+            .'If none fits, return {"key": null}. Reply with strict JSON only, no prose.';
 
-        $user = "Intents:\n" . $enum . "\n\nUser question: " . $question . "\n\nReply JSON: {\"key\": \"...\"}";
+        $user = "Intents:\n".$enum."\n\nUser question: ".$question."\n\nReply JSON: {\"key\": \"...\"}";
 
         $raw = $this->llm->complete($system, $user, 60, 0.0);
         if ($raw === null) {
@@ -41,6 +39,7 @@ class IntentResolver
         }
 
         $key = $this->extractKey($raw);
+
         return ($key !== null && in_array($key, QuestionCatalog::keys(), true)) ? $key : null;
     }
 
@@ -53,6 +52,7 @@ class IntentResolver
             }
         }
         $raw = trim($raw, "\"' \n");
+
         return in_array($raw, QuestionCatalog::keys(), true) ? $raw : null;
     }
 }

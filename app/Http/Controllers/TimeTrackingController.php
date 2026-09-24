@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
 use App\Models\TimeEntry;
+use App\Traits\LogsActivity;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class TimeTrackingController extends Controller
 {
-    use \App\Traits\LogsActivity;
+    use LogsActivity;
 
     /**
      * List time entries with filters.
@@ -32,7 +32,7 @@ class TimeTrackingController extends Controller
         }
 
         if ($request->filled('project')) {
-            $query->where('project', 'like', '%' . $request->project . '%');
+            $query->where('project', 'like', '%'.$request->project.'%');
         }
 
         if ($request->filled('date_from')) {
@@ -209,7 +209,7 @@ class TimeTrackingController extends Controller
             }
 
             $lastId = Invoice::withTrashed()->max('id') ?? 0;
-            $invoiceNumber = 'INV-' . date('Y') . '-' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            $invoiceNumber = 'INV-'.date('Y').'-'.str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
 
             $invoice = Invoice::create([
                 'invoice_number' => $invoiceNumber,
@@ -242,7 +242,7 @@ class TimeTrackingController extends Controller
 
         $this->logActivity('created', "Created invoice {$invoice->invoice_number} from time entries", 'Invoice', $invoice->id);
 
-        return redirect()->route('time_tracking.index')->with('success', "Invoice {$invoice->invoice_number} created from " . $entries->count() . " time entries.");
+        return redirect()->route('time_tracking.index')->with('success', "Invoice {$invoice->invoice_number} created from ".$entries->count().' time entries.');
     }
 
     /**
@@ -252,7 +252,7 @@ class TimeTrackingController extends Controller
     {
         $entries = TimeEntry::with('customer')->latest()->get();
 
-        $filename = 'time-entries-' . date('Y-m-d') . '.csv';
+        $filename = 'time-entries-'.date('Y-m-d').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',

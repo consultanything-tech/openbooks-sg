@@ -11,8 +11,8 @@ class InvoiceItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_id', 'item_id', 'name', 'description', 
-        'quantity', 'price', 'tax_rate', 'tax_amount', 'total'
+        'invoice_id', 'item_id', 'name', 'description',
+        'quantity', 'price', 'tax_rate', 'tax_amount', 'total',
     ];
 
     protected $casts = [

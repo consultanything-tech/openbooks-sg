@@ -7,9 +7,11 @@ use App\Models\Bill;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Services\AskOpenBooks\QuestionCatalog;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AskOpenBooksTest extends TestCase
@@ -122,7 +124,7 @@ class AskOpenBooksTest extends TestCase
         $before = [
             'invoices' => Invoice::count(),
             'bills' => Bill::count(),
-            'transactions' => \App\Models\Transaction::count(),
+            'transactions' => Transaction::count(),
             'customers' => Customer::count(),
             'vendors' => Vendor::count(),
         ];
@@ -133,7 +135,7 @@ class AskOpenBooksTest extends TestCase
 
         $this->assertSame($before['invoices'], Invoice::count());
         $this->assertSame($before['bills'], Bill::count());
-        $this->assertSame($before['transactions'], \App\Models\Transaction::count());
+        $this->assertSame($before['transactions'], Transaction::count());
         $this->assertSame($before['customers'], Customer::count());
         $this->assertSame($before['vendors'], Vendor::count());
     }
@@ -172,8 +174,8 @@ class AskOpenBooksTest extends TestCase
     {
         Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
 
-        \Illuminate\Support\Facades\Http::fake([
-            'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::sequence()
+        Http::fake([
+            'integrate.api.nvidia.com/*' => Http::sequence()
                 ->push(['choices' => [['message' => ['content' => '{"key": "profit_summary"}']]]])
                 ->push(['choices' => [['message' => ['content' => 'You made a healthy profit this month after covering all your bills.']]]]),
         ]);
@@ -189,8 +191,8 @@ class AskOpenBooksTest extends TestCase
     public function test_llm_bad_key_is_discarded_by_scope_guard(): void
     {
         Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
-        \Illuminate\Support\Facades\Http::fake([
-            'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::response(
+        Http::fake([
+            'integrate.api.nvidia.com/*' => Http::response(
                 ['choices' => [['message' => ['content' => '{"key": "drop_all_tables"}']]]]
             ),
         ]);
@@ -203,8 +205,8 @@ class AskOpenBooksTest extends TestCase
     public function test_llm_outage_falls_back_gracefully(): void
     {
         Company::first()->update(['nvidia_api_key' => 'nvapi-test-key']);
-        \Illuminate\Support\Facades\Http::fake([
-            'integrate.api.nvidia.com/*' => \Illuminate\Support\Facades\Http::response([], 500),
+        Http::fake([
+            'integrate.api.nvidia.com/*' => Http::response([], 500),
         ]);
 
         // Keyword path still works without the LLM
