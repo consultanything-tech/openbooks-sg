@@ -77,11 +77,6 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
-    public function canAccessAdmin(): bool
-    {
-        return $this->isAdmin();
-    }
-
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
