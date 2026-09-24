@@ -5,6 +5,14 @@ All notable changes to OpenBooks SG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-24
+
+### Fixed
+- `composer.lock` was resolved on PHP 8.5 and locked Symfony 8.1 packages
+  requiring PHP >= 8.4.1, breaking `composer install` on the minimum
+  supported PHP 8.3. The Composer platform is now pinned to 8.3.0 so the
+  lock resolves installable versions across all supported PHP versions.
+
 ## [1.0.0] - 2026-09-24
 
 ### Added
