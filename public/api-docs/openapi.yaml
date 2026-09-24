@@ -1,0 +1,904 @@
+openapi: 3.0.3
+info:
+  title: OpenBooks SG API
+  version: 1.0.0
+  description: |
+    RESTful API for OpenBooks SG, a Singapore-focused accounting and invoicing platform.
+
+    ## Authentication
+    All endpoints require a Bearer token. Obtain your API token from **Settings > API Tokens** in the application.
+
+    ## Rate Limiting
+    The API enforces a limit of **60 requests per minute** per token. Exceeding this returns HTTP 429 with a `Retry-After` header.
+
+    ## Currency & Tax
+    All monetary amounts are in **SGD** unless otherwise specified. The default GST rate is **9%** (effective 1 January 2024).
+
+    ## Pagination
+    List endpoints accept `per_page` (default 15) and `page` query parameters. Responses include a `meta` object with `total`, `per_page`, and `current_page`.
+
+servers:
+  - url: /api/v1
+    description: Default API server (relative)
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Invoices
+    description: Create, list, update, and delete invoices
+  - name: Customers
+    description: Manage customer records
+  - name: Quotes
+    description: Create and view quotations
+  - name: Payments
+    description: Record and list payments against invoices
+  - name: Bills
+    description: View supplier bills
+  - name: Items
+    description: List product/service items
+  - name: Reports
+    description: Financial reports (Profit & Loss, Balance Sheet)
+  - name: Company
+    description: Retrieve company profile information
+
+paths:
+  /invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices
+      description: Returns a paginated list of invoices with customer details. Supports filtering by status, customer, and date range.
+      operationId: listInvoices
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [draft, sent, partial, paid, overdue, cancelled] }
+          description: Filter by invoice status
+        - name: customer_id
+          in: query
+          schema: { type: integer }
+          description: Filter by customer ID
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+          example: "2025-01-01"
+          description: Filter invoices from this date (inclusive)
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+          example: "2025-12-31"
+          description: Filter invoices up to this date (inclusive)
+        - name: per_page
+          in: query
+          schema: { type: integer, default: 15 }
+          description: Number of records per page
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+          description: Page number
+      responses:
+        "200":
+          description: Paginated list of invoices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Invoice" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+    post:
+      tags: [Invoices]
+      summary: Create an invoice
+      description: Creates a new invoice in draft status with line items. GST at 9% is applied when `tax_rate` is set on items.
+      operationId: createInvoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_id, invoice_date, items]
+              properties:
+                customer_id:
+                  type: integer
+                  description: ID of an existing customer
+                  example: 1
+                invoice_date:
+                  type: string
+                  format: date
+                  example: "2025-06-15"
+                due_date:
+                  type: string
+                  format: date
+                  nullable: true
+                  example: "2025-07-15"
+                notes:
+                  type: string
+                  nullable: true
+                  example: "Payment via PayNow or bank transfer."
+                terms:
+                  type: string
+                  nullable: true
+                  example: "Net 30. Late payment subject to 1.5% monthly interest."
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [description, quantity, unit_price]
+                    properties:
+                      item_id:
+                        type: integer
+                        nullable: true
+                        description: Reference to an existing item (optional)
+                      description:
+                        type: string
+                        example: "Website Development - Phase 1"
+                      quantity:
+                        type: number
+                        minimum: 0.01
+                        example: 1
+                      unit_price:
+                        type: number
+                        minimum: 0
+                        example: 5000.00
+                      tax_rate:
+                        type: number
+                        minimum: 0
+                        description: GST rate percentage (9% standard rate in Singapore)
+                        example: 9
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /invoices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer }
+        description: Invoice ID
+    get:
+      tags: [Invoices]
+      summary: Get a single invoice
+      description: Returns invoice details including line items and customer information.
+      operationId: showInvoice
+      responses:
+        "200":
+          description: Invoice detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Invoices]
+      summary: Update an invoice
+      description: Partially update invoice fields such as status, dates, and notes.
+      operationId: updateInvoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id: { type: integer }
+                invoice_date: { type: string, format: date }
+                due_date: { type: string, format: date, nullable: true }
+                status:
+                  type: string
+                  enum: [draft, sent, partial, paid, overdue, cancelled]
+                  example: "sent"
+                notes: { type: string, nullable: true }
+                terms: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Invoice updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Invoice" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Invoices]
+      summary: Delete an invoice
+      description: Permanently deletes an invoice and its line items.
+      operationId: deleteInvoice
+      responses:
+        "200":
+          description: Invoice deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Invoice deleted." }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: Returns a paginated list of customers, newest first.
+      operationId: listCustomers
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Paginated list of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Customer" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Customers]
+      summary: Create a customer
+      description: Creates a new customer record. Tax number should be the customer's UEN (e.g. 202012345K).
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255, example: "Tan Ah Kow Pte Ltd" }
+                email: { type: string, format: email, nullable: true, example: "accounts@tanahkow.sg" }
+                phone: { type: string, maxLength: 50, nullable: true, example: "+65 6234 5678" }
+                company_name: { type: string, maxLength: 255, nullable: true, example: "Tan Ah Kow Pte Ltd" }
+                tax_number: { type: string, maxLength: 100, nullable: true, description: "Customer's UEN or GST registration number", example: "202012345K" }
+                address: { type: string, nullable: true, example: "1 Raffles Place, #20-61" }
+                city: { type: string, maxLength: 255, nullable: true, example: "Singapore" }
+                country: { type: string, maxLength: 255, nullable: true, example: "Singapore" }
+                currency: { type: string, maxLength: 10, nullable: true, example: "SGD" }
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Customer" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /customers/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Customers]
+      summary: Get a single customer
+      description: Returns customer details with associated invoices.
+      operationId: showCustomer
+      responses:
+        "200":
+          description: Customer detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Customer" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Customers]
+      summary: Update a customer
+      description: Partially update customer fields.
+      operationId: updateCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+                email: { type: string, format: email, nullable: true }
+                phone: { type: string, maxLength: 50, nullable: true }
+                company_name: { type: string, maxLength: 255, nullable: true }
+                tax_number: { type: string, maxLength: 100, nullable: true }
+                address: { type: string, nullable: true }
+                city: { type: string, maxLength: 255, nullable: true }
+                country: { type: string, maxLength: 255, nullable: true }
+                currency: { type: string, maxLength: 10, nullable: true }
+                is_active: { type: boolean }
+      responses:
+        "200":
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Customer" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /quotes:
+    get:
+      tags: [Quotes]
+      summary: List quotes
+      description: Returns a paginated list of quotations with customer details.
+      operationId: listQuotes
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Paginated list of quotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Quote" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Quotes]
+      summary: Create a quote
+      description: Creates a new quotation in draft status with line items.
+      operationId: createQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_id, quote_date, items]
+              properties:
+                customer_id: { type: integer, example: 1 }
+                quote_date: { type: string, format: date, example: "2025-06-15" }
+                expiry_date: { type: string, format: date, nullable: true, example: "2025-07-15" }
+                notes: { type: string, nullable: true }
+                terms: { type: string, nullable: true, example: "Quote valid for 30 days." }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [description, quantity, unit_price]
+                    properties:
+                      item_id: { type: integer, nullable: true }
+                      description: { type: string, example: "Cloud hosting setup" }
+                      quantity: { type: number, minimum: 0.01, example: 1 }
+                      unit_price: { type: number, minimum: 0, example: 2500.00 }
+                      tax_rate: { type: number, minimum: 0, example: 9 }
+      responses:
+        "201":
+          description: Quote created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Quote" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /quotes/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Quotes]
+      summary: Get a single quote
+      description: Returns quotation details including line items and customer.
+      operationId: showQuote
+      responses:
+        "200":
+          description: Quote detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Quote" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      description: Returns a paginated list of payment transactions (income type) with customer, invoice, and bank account details.
+      operationId: listPayments
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Paginated list of payments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Payment" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Payments]
+      summary: Record a payment
+      description: |
+        Records a payment against an invoice. Automatically updates the invoice's paid amount, due amount, and status.
+        If the payment covers the full outstanding balance, the invoice status changes to `paid`; otherwise to `partial`.
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoice_id, amount, payment_method, transaction_date]
+              properties:
+                invoice_id: { type: integer, example: 1 }
+                amount: { type: number, minimum: 0.01, example: 5450.00 }
+                payment_method:
+                  type: string
+                  maxLength: 50
+                  example: "PayNow"
+                  description: "Payment method (e.g. PayNow, Bank Transfer, Cash, Credit Card)"
+                transaction_date: { type: string, format: date, example: "2025-06-20" }
+                bank_account_id: { type: integer, nullable: true, description: "Bank account to record the deposit against" }
+                reference_number: { type: string, maxLength: 255, nullable: true, example: "TXN-2025-00142" }
+                description: { type: string, nullable: true, example: "Full payment for INV-001" }
+      responses:
+        "201":
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Payment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /bills:
+    get:
+      tags: [Bills]
+      summary: List bills
+      description: Returns a paginated list of supplier bills with vendor details.
+      operationId: listBills
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Paginated list of bills
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Bill" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /bills/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer } }
+    get:
+      tags: [Bills]
+      summary: Get a single bill
+      description: Returns bill details including line items and vendor information.
+      operationId: showBill
+      responses:
+        "200":
+          description: Bill detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Bill" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /items:
+    get:
+      tags: [Items]
+      summary: List items
+      description: Returns a paginated list of active product/service items with category information.
+      operationId: listItems
+      parameters:
+        - { name: per_page, in: query, schema: { type: integer, default: 15 } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      responses:
+        "200":
+          description: Paginated list of items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Item" }
+                  meta: { $ref: "#/components/schemas/PaginationMeta" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /reports/profit-loss:
+    get:
+      tags: [Reports]
+      summary: Profit & Loss report
+      description: Returns total income, total expense, and net profit for the specified date range. Defaults to the current calendar year.
+      operationId: profitLossReport
+      parameters:
+        - name: date_from
+          in: query
+          schema: { type: string, format: date }
+          example: "2025-01-01"
+          description: Start of reporting period
+        - name: date_to
+          in: query
+          schema: { type: string, format: date }
+          example: "2025-12-31"
+          description: End of reporting period
+      responses:
+        "200":
+          description: Profit and loss summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      period:
+                        type: object
+                        properties:
+                          from: { type: string, format: date, example: "2025-01-01" }
+                          to: { type: string, format: date, example: "2025-12-31" }
+                      total_income: { type: number, format: float, example: 250000.00 }
+                      total_expense: { type: number, format: float, example: 180000.00 }
+                      net_profit: { type: number, format: float, example: 70000.00 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /reports/balance-sheet:
+    get:
+      tags: [Reports]
+      summary: Balance Sheet report
+      description: Returns total assets, liabilities, and equity as of the specified date. Defaults to today.
+      operationId: balanceSheetReport
+      parameters:
+        - name: as_of
+          in: query
+          schema: { type: string, format: date }
+          example: "2025-06-30"
+          description: Balance sheet date
+      responses:
+        "200":
+          description: Balance sheet summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      as_of: { type: string, format: date, example: "2025-06-30" }
+                      total_assets: { type: number, format: float, example: 520000.00 }
+                      total_liabilities: { type: number, format: float, example: 180000.00 }
+                      total_equity: { type: number, format: float, example: 340000.00 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /company:
+    get:
+      tags: [Company]
+      summary: Get company profile
+      description: Returns the current company profile including currency and tax settings.
+      operationId: showCompany
+      responses:
+        "200":
+          description: Company profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Company" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Company not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Company not found." }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: API token obtained from Settings > API Tokens in the OpenBooks SG application.
+
+  schemas:
+    PaginationMeta:
+      type: object
+      properties:
+        total: { type: integer, example: 42 }
+        per_page: { type: integer, example: 15 }
+        current_page: { type: integer, example: 1 }
+
+    Invoice:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        invoice_number: { type: string, example: "INV-2025-001" }
+        customer_id: { type: integer, example: 1 }
+        invoice_date: { type: string, format: date, example: "2025-06-15" }
+        due_date: { type: string, format: date, nullable: true, example: "2025-07-15" }
+        status:
+          type: string
+          enum: [draft, sent, partial, paid, overdue, cancelled]
+          example: "sent"
+        subtotal: { type: number, format: float, example: 5000.00, description: "Amount before GST (SGD)" }
+        tax_total: { type: number, format: float, example: 450.00, description: "GST amount at 9% (SGD)" }
+        discount_total: { type: number, format: float, example: 0.00 }
+        total: { type: number, format: float, example: 5450.00, description: "Total including GST (SGD)" }
+        paid_amount: { type: number, format: float, example: 0.00 }
+        due_amount: { type: number, format: float, example: 5450.00 }
+        notes: { type: string, nullable: true }
+        terms: { type: string, nullable: true }
+        customer:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Customer"
+        items:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/InvoiceItem" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    InvoiceItem:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        invoice_id: { type: integer, example: 1 }
+        item_id: { type: integer, nullable: true }
+        description: { type: string, example: "Website Development - Phase 1" }
+        quantity: { type: number, format: float, example: 1 }
+        unit_price: { type: number, format: float, example: 5000.00 }
+        tax_rate: { type: number, format: float, example: 9, description: "GST rate in percentage" }
+        total: { type: number, format: float, example: 5000.00 }
+
+    Customer:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Tan Ah Kow Pte Ltd" }
+        email: { type: string, format: email, nullable: true, example: "accounts@tanahkow.sg" }
+        phone: { type: string, nullable: true, example: "+65 6234 5678" }
+        company_name: { type: string, nullable: true, example: "Tan Ah Kow Pte Ltd" }
+        tax_number: { type: string, nullable: true, example: "202012345K", description: "UEN or GST registration number" }
+        address: { type: string, nullable: true, example: "1 Raffles Place, #20-61" }
+        city: { type: string, nullable: true, example: "Singapore" }
+        country: { type: string, nullable: true, example: "Singapore" }
+        currency: { type: string, nullable: true, example: "SGD" }
+        is_active: { type: boolean, example: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Quote:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        quote_number: { type: string, example: "QUO-2025-001" }
+        customer_id: { type: integer, example: 1 }
+        quote_date: { type: string, format: date, example: "2025-06-15" }
+        expiry_date: { type: string, format: date, nullable: true, example: "2025-07-15" }
+        status:
+          type: string
+          enum: [draft, sent, accepted, declined, expired]
+          example: "draft"
+        subtotal: { type: number, format: float, example: 2500.00 }
+        tax_total: { type: number, format: float, example: 225.00 }
+        discount_total: { type: number, format: float, example: 0.00 }
+        total: { type: number, format: float, example: 2725.00 }
+        notes: { type: string, nullable: true }
+        terms: { type: string, nullable: true }
+        customer:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Customer"
+        items:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/InvoiceItem" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        type: { type: string, example: "income" }
+        invoice_id: { type: integer, example: 1 }
+        customer_id: { type: integer, example: 1 }
+        amount: { type: number, format: float, example: 5450.00, description: "Payment amount in SGD" }
+        payment_method: { type: string, example: "PayNow", description: "e.g. PayNow, Bank Transfer, Cash, Credit Card" }
+        transaction_date: { type: string, format: date, example: "2025-06-20" }
+        bank_account_id: { type: integer, nullable: true }
+        reference_number: { type: string, nullable: true, example: "TXN-2025-00142" }
+        description: { type: string, nullable: true }
+        invoice:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Invoice"
+        customer:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Customer"
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Bill:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        bill_number: { type: string, example: "BILL-2025-001" }
+        vendor_id: { type: integer, example: 1 }
+        bill_date: { type: string, format: date, example: "2025-06-10" }
+        due_date: { type: string, format: date, nullable: true, example: "2025-07-10" }
+        status:
+          type: string
+          enum: [draft, received, partial, paid, overdue, cancelled]
+          example: "received"
+        subtotal: { type: number, format: float, example: 1200.00 }
+        tax_total: { type: number, format: float, example: 108.00 }
+        total: { type: number, format: float, example: 1308.00 }
+        paid_amount: { type: number, format: float, example: 0.00 }
+        due_amount: { type: number, format: float, example: 1308.00 }
+        notes: { type: string, nullable: true }
+        vendor:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string, example: "CloudHost SG Pte Ltd" }
+        items:
+          type: array
+          nullable: true
+          items: { $ref: "#/components/schemas/InvoiceItem" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Item:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "Web Development" }
+        description: { type: string, nullable: true, example: "Custom web application development services" }
+        type:
+          type: string
+          enum: [product, service]
+          example: "service"
+        sale_price: { type: number, format: float, example: 150.00, description: "Default selling price per unit in SGD" }
+        purchase_price: { type: number, format: float, nullable: true, example: 0.00 }
+        sku: { type: string, nullable: true, example: "SVC-WEB-001" }
+        unit: { type: string, nullable: true, example: "hour" }
+        tax_rate: { type: number, format: float, example: 9, description: "Default GST rate" }
+        is_active: { type: boolean, example: true }
+        category:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string, example: "Services" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Company:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: "OpenBooks SG Pte Ltd" }
+        email: { type: string, format: email, nullable: true, example: "hello@openbooks.sg" }
+        phone: { type: string, nullable: true, example: "+65 8123 4567" }
+        address: { type: string, nullable: true, example: "10 Anson Road, #12-05" }
+        city: { type: string, nullable: true, example: "Singapore" }
+        state: { type: string, nullable: true, example: "Singapore" }
+        country: { type: string, nullable: true, example: "Singapore" }
+        currency_code: { type: string, example: "SGD" }
+        currency_symbol: { type: string, example: "S$" }
+        tax_number: { type: string, nullable: true, example: "M90362868R", description: "Company UEN" }
+        financial_year_start: { type: string, nullable: true, example: "01-01" }
+
+    Error:
+      type: object
+      properties:
+        message: { type: string, example: "The given data was invalid." }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+          example:
+            customer_id: ["The selected customer id is invalid."]
+            items: ["The items field is required."]
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid/expired
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string, example: "Unauthenticated." }
+              errors: { type: object }
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string, example: "Invoice not found." }
+              errors: { type: object }
+
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+    TooManyRequests:
+      description: Rate limit exceeded (60 requests/minute)
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string, example: "Too many requests. Please retry later." }
+              errors: { type: object }
+              retry_after: { type: integer, example: 60 }

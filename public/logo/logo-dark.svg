@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 72" width="300" height="72" role="img" aria-label="OpenBooks SG — Open Source Accounting">
+  <defs>
+    <linearGradient id="ob-tile-d" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <!-- Mark (scaled group, not nested svg, for renderer portability) -->
+  <g transform="translate(6,8) scale(0.583333)">
+    <rect width="96" height="96" rx="22" fill="url(#ob-tile-d)"/>
+    <path d="M46 33 C 39 27.5, 30 25.5, 23 25.5 L23 61.5 C 30 61.5, 39 63.5, 46 69 Z" fill="#ffffff"/>
+    <path d="M50 33 C 57 27.5, 66 25.5, 73 25.5 L73 61.5 C 66 61.5, 57 63.5, 50 69 Z" fill="#ffffff"/>
+    <rect x="29" y="40" width="13" height="3.5" rx="1.75" fill="#2563eb"/>
+    <rect x="29" y="48" width="9" height="3.5" rx="1.75" fill="#60a5fa"/>
+    <rect x="55" y="50" width="4.5" height="10" rx="2" fill="#93c5fd"/>
+    <rect x="61.5" y="44" width="4.5" height="16" rx="2" fill="#60a5fa"/>
+    <rect x="68" y="38" width="4.5" height="22" rx="2" fill="#2563eb"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="74" y="42" font-family="Inter, -apple-system, 'Segoe UI', sans-serif" font-size="26" font-weight="700" letter-spacing="-0.5" fill="#f8fafc">OpenBooks<tspan fill="#60a5fa" font-weight="800"> SG</tspan></text>
+  <text x="75" y="60" font-family="Inter, -apple-system, 'Segoe UI', sans-serif" font-size="10" font-weight="600" letter-spacing="2.4" fill="#94a3b8">OPEN SOURCE ACCOUNTING</text>
+</svg>

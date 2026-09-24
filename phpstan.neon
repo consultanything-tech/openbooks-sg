@@ -1,0 +1,18 @@
+parameters:
+    level: 5
+    paths:
+        - app
+        - routes
+    scanDirectories:
+        - vendor/laravel/framework/src/Illuminate
+    ignoreErrors:
+        # Facade magic methods
+        - '#^Call to an undefined method Illuminate\\Support\\Facades\\#'
+        # Eloquent dynamic properties & scopes
+        - '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model#'
+        - '#^Call to an undefined method Illuminate\\Database\\Eloquent\\#'
+        # Request magic properties
+        - '#^Access to an undefined property Illuminate\\Http\\Request#'
+        # View component magic
+        - '#^Access to an undefined property Illuminate\\View\\#'
+    treatPhpDocTypesAsCertain: false
