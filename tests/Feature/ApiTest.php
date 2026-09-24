@@ -13,6 +13,7 @@ class ApiTest extends TestCase
 {
     private User $apiUser;
     private ApiToken $apiToken;
+    private string $plainToken;
 
     protected function setUp(): void
     {
@@ -25,17 +26,18 @@ class ApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->apiToken = ApiToken::create([
-            'user_id' => $this->apiUser->id,
-            'token' => Str::random(64),
-            'name' => 'Test API Token',
-            'expires_at' => now()->addYear(),
-        ]);
+        $result = ApiToken::generateFor(
+            $this->apiUser,
+            'Test API Token',
+            now()->addYear(),
+        );
+        $this->apiToken = $result['model'];
+        $this->plainToken = $result['plain_text_token'];
     }
 
     private function withApiToken(): static
     {
-        return $this->withHeader('Authorization', 'Bearer ' . $this->apiToken->token);
+        return $this->withHeader('Authorization', 'Bearer ' . $this->plainToken);
     }
 
     public function test_api_requires_token(): void

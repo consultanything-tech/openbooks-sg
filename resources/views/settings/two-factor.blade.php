@@ -210,6 +210,7 @@
 @endsection
 
 @section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script>
 function enableTwoFactor() {
     const btn = document.getElementById('enableTwoFactorBtn');

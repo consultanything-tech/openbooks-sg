@@ -18,7 +18,7 @@ class ApiAuthenticate
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $apiToken = ApiToken::where('token', $token)->first();
+        $apiToken = ApiToken::findByPlainToken($token);
 
         if (!$apiToken) {
             return response()->json(['message' => 'Invalid token.'], 401);
