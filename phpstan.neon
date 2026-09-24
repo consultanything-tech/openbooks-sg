@@ -6,7 +6,4 @@ parameters:
     paths:
         - app
         - routes
-    ignoreErrors:
-        # Request magic properties (e.g. $request->route('id'))
-        - '#^Access to an undefined property Illuminate\\Http\\Request#'
     treatPhpDocTypesAsCertain: false
