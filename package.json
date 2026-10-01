@@ -18,7 +18,7 @@
         "vite": "^6.0.0"
     },
     "dependencies": {
-        "lucide": "^1.47.0"
+        "lucide": "^1.48.0"
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1",
