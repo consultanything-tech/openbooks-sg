@@ -21,7 +21,7 @@
         "lucide": "^1.47.0"
     },
     "optionalDependencies": {
-        "@laravel/multiplex": "^0.4.1",
+        "@laravel/multiplex": "^0.4.4",
         "@tailwindcss/oxide-darwin-arm64": "^4.3.3",
         "lightningcss-darwin-arm64": "^1.33.0"
     },
